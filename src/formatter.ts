@@ -28,3 +28,33 @@ export function feedbackHuman(row: Feedback): string {
 export function createdIdHuman(row: Feedback): string {
   return `${row.id}\n`;
 }
+
+export function feedbackListJson(rows: Feedback[]): string {
+  return JSON.stringify(rows) + "\n";
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max - 1) + "…";
+}
+
+export function feedbackListHuman(rows: Feedback[]): string {
+  if (rows.length === 0) return "no feedback found\n";
+
+  const header = `${"ID".padEnd(8)}  ${"TYPE".padEnd(8)}  ${"TITLE".padEnd(40)}  ${"PRIORITY".padEnd(10)}  CREATED`;
+  const lines = [header];
+
+  for (const row of rows) {
+    const id = orDashPad(row.id, 8);
+    const type = orDashPad(row.feedbackType, 8);
+    const title = orDashPad(row.title ? truncate(row.title, 40) : undefined, 40);
+    const priority = orDashPad(row.priority, 10);
+    const created = orDash(row.createdAt);
+    lines.push(`${id}  ${type}  ${title}  ${priority}  ${created}`);
+  }
+  return lines.join("\n") + "\n";
+}
+
+function orDashPad(value: unknown, width: number): string {
+  const s = value === undefined || value === null || value === "" ? DASH : String(value);
+  return s.padEnd(width);
+}
