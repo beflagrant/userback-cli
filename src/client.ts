@@ -139,6 +139,10 @@ export class UserbackClient {
     return this.request<Feedback[]>("GET", "/feedback", { query });
   }
 
+  async createFeedback(attrs: CreateFeedbackAttrs): Promise<Feedback> {
+    return this.request<Feedback>("POST", "/feedback", { body: attrs });
+  }
+
   private async request<T>(
     method: HTTPMethod,
     path: string,

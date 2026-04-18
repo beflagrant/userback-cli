@@ -229,3 +229,70 @@ describe("listFeedback", () => {
     assert.deepEqual(rows, []);
   });
 });
+
+describe("createFeedback", () => {
+  let agent: MockAgent;
+
+  before(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  beforeEach(() => {
+    agent = installMockAgent();
+  });
+
+  after(() => {
+    restoreDispatcher();
+  });
+
+  test("POST /feedback with required body fields", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback",
+        method: "POST",
+        body: (raw) => {
+          const parsed = JSON.parse(raw);
+          assert.equal(parsed.projectId, 7);
+          assert.equal(parsed.email, "me@example.com");
+          assert.equal(parsed.feedbackType, "Bug");
+          assert.equal(parsed.title, "Broken checkout");
+          assert.equal(parsed.description, "500 on submit");
+          return true;
+        },
+      })
+      .reply(201, { id: 999, title: "Broken checkout" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const created = await client.createFeedback({
+      projectId: 7,
+      email: "me@example.com",
+      feedbackType: "Bug",
+      title: "Broken checkout",
+      description: "500 on submit",
+    });
+    assert.equal(created.id, 999);
+  });
+
+  test("POST /feedback propagates 422 as ValidationError", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback", method: "POST" })
+      .reply(422, { errors: { title: ["is required"] } }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.createFeedback({
+        projectId: 7,
+        email: "me@example.com",
+        feedbackType: "General",
+        title: "",
+        description: "x",
+      }),
+      { name: "ValidationError" },
+    );
+  });
+});
