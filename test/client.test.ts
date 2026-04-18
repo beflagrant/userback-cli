@@ -357,3 +357,49 @@ describe("updateFeedback", () => {
     );
   });
 });
+
+describe("createComment", () => {
+  let agent: MockAgent;
+
+  before(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  beforeEach(() => { agent = installMockAgent(); });
+  after(() => { restoreDispatcher(); });
+
+  test("POST /feedback/comment with feedbackId in body (not path)", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback/comment",
+        method: "POST",
+        body: (raw) => {
+          const parsed = JSON.parse(raw);
+          assert.deepEqual(parsed, { feedbackId: 42, comment: "fixed" });
+          return true;
+        },
+      })
+      .reply(201, { id: 9001 }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const comment = await client.createComment({ feedbackId: 42, comment: "fixed" });
+    assert.equal(comment.id, 9001);
+  });
+
+  test("POST /feedback/comment propagates 422", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/comment", method: "POST" })
+      .reply(422, { error: "empty comment" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.createComment({ feedbackId: 42, comment: "" }),
+      { name: "ValidationError" },
+    );
+  });
+});

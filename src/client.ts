@@ -147,6 +147,10 @@ export class UserbackClient {
     return this.request<Feedback>("PATCH", `/feedback/${id}`, { body: attrs });
   }
 
+  async createComment(args: { feedbackId: number; comment: string }): Promise<Comment> {
+    return this.request<Comment>("POST", "/feedback/comment", { body: args });
+  }
+
   private async request<T>(
     method: HTTPMethod,
     path: string,
