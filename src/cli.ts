@@ -6,6 +6,17 @@ import { errorHuman, errorJson } from "./formatter.js";
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
 
+function parsePositiveInt(raw: string, name: string): number {
+  if (!/^\d+$/.test(raw)) {
+    throw new ConfigError(`${name} must be a positive integer, got: ${raw}`);
+  }
+  const n = Number(raw);
+  if (!Number.isSafeInteger(n) || n <= 0) {
+    throw new ConfigError(`${name} must be a positive integer, got: ${raw}`);
+  }
+  return n;
+}
+
 function buildProgram(): Command {
   const program = new Command();
   program
@@ -13,6 +24,19 @@ function buildProgram(): Command {
     .description("Userback CLI (userback-cli)")
     .version(pkg.version)
     .showHelpAfterError();
+
+  program
+    .command("show <feedbackId>")
+    .description("Show a single feedback item")
+    .option("--json", "Emit JSON instead of a human-readable block")
+    .action(async (feedbackIdRaw: string, opts: { json?: boolean }) => {
+      const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
+      const { UserbackClient } = await import("./client.js");
+      const { feedbackHuman, feedbackJson } = await import("./formatter.js");
+      const client = new UserbackClient();
+      const row = await client.getFeedback(id);
+      process.stdout.write(opts.json ? feedbackJson(row) : feedbackHuman(row));
+    });
 
   return program;
 }
