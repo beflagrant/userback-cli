@@ -129,6 +129,16 @@ export class UserbackClient {
     return this.request<Feedback>("GET", `/feedback/${id}`);
   }
 
+  async listFeedback(options: ListFeedbackOptions): Promise<Feedback[]> {
+    const query: Record<string, string | number | undefined> = {
+      page: options.page ?? 1,
+      limit: options.limit ?? 25,
+      sort: options.sort,
+      filter: options.filter,
+    };
+    return this.request<Feedback[]>("GET", "/feedback", { query });
+  }
+
   private async request<T>(
     method: HTTPMethod,
     path: string,

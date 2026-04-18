@@ -179,3 +179,53 @@ describe("UserbackClient request plumbing", () => {
     );
   });
 });
+
+describe("listFeedback", () => {
+  let agent: MockAgent;
+
+  before(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  beforeEach(() => {
+    agent = installMockAgent();
+  });
+
+  after(() => {
+    restoreDispatcher();
+  });
+
+  test("GET /feedback with default query (page=1, limit=25)", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback?page=1&limit=25",
+        method: "GET",
+      })
+      .reply(200, [{ id: 1 }, { id: 2 }], {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const rows = await client.listFeedback({});
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0]?.id, 1);
+  });
+
+  test("GET /feedback with limit, filter, sort", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback?page=1&limit=10&sort=createdAt+desc&filter=feedbackType+eq+%27Bug%27",
+        method: "GET",
+      })
+      .reply(200, [], { headers: { "content-type": "application/json" } });
+
+    const client = new UserbackClient();
+    const rows = await client.listFeedback({
+      limit: 10,
+      sort: "createdAt desc",
+      filter: "feedbackType eq 'Bug'",
+    });
+    assert.deepEqual(rows, []);
+  });
+});
