@@ -296,3 +296,64 @@ describe("createFeedback", () => {
     );
   });
 });
+
+describe("updateFeedback", () => {
+  let agent: MockAgent;
+
+  before(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  beforeEach(() => { agent = installMockAgent(); });
+  after(() => { restoreDispatcher(); });
+
+  test("PATCH /feedback/:id with Workflow name body", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback/123",
+        method: "PATCH",
+        body: (raw) => {
+          const parsed = JSON.parse(raw);
+          assert.deepEqual(parsed, { Workflow: { name: "Closed" } });
+          return true;
+        },
+      })
+      .reply(200, { id: 123 }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const updated = await client.updateFeedback(123, { Workflow: { name: "Closed" } });
+    assert.equal(updated.id, 123);
+  });
+
+  test("PATCH /feedback/:id with Workflow id body", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({
+        path: "/1.0/feedback/123",
+        method: "PATCH",
+        body: (raw) => {
+          const parsed = JSON.parse(raw);
+          assert.deepEqual(parsed, { Workflow: { id: 7 } });
+          return true;
+        },
+      })
+      .reply(200, { id: 123 });
+
+    const client = new UserbackClient();
+    await client.updateFeedback(123, { Workflow: { id: 7 } });
+  });
+
+  test("PATCH /feedback/:id propagates 404", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/999", method: "PATCH" })
+      .reply(404, { error: "not found" });
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.updateFeedback(999, { Workflow: { name: "Closed" } }),
+      { name: "NotFoundError" },
+    );
+  });
+});

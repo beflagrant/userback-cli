@@ -143,6 +143,10 @@ export class UserbackClient {
     return this.request<Feedback>("POST", "/feedback", { body: attrs });
   }
 
+  async updateFeedback(id: number, attrs: UpdateFeedbackAttrs): Promise<Feedback> {
+    return this.request<Feedback>("PATCH", `/feedback/${id}`, { body: attrs });
+  }
+
   private async request<T>(
     method: HTTPMethod,
     path: string,
