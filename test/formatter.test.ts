@@ -6,6 +6,16 @@ import {
   createdIdHuman,
 } from "../src/formatter.js";
 import type { Feedback } from "../src/client.js";
+import {
+  ConfigError,
+  NetworkError,
+  UnauthorizedError,
+  NotFoundError,
+  ValidationError,
+  ServerError,
+  HTTPError,
+  UserbackError,
+} from "../src/client.js";
 
 const sample: Feedback = {
   id: 42,
@@ -90,4 +100,52 @@ test("feedbackListHuman renders em-dash for missing fields in rows", () => {
   const rows: Feedback[] = [{ id: 1 }];
   const out = feedbackListHuman(rows);
   assert.match(out, /—/);
+});
+
+import { errorHuman, errorJson } from "../src/formatter.js";
+
+test("errorHuman for ConfigError", () => {
+  assert.equal(errorHuman(new ConfigError("missing key")), "ub: config: missing key\n");
+});
+
+test("errorHuman for UnauthorizedError", () => {
+  const err = new UnauthorizedError(401, null, "unauth");
+  assert.equal(errorHuman(err), "ub: unauthorized: unauth\n");
+});
+
+test("errorHuman for NotFoundError", () => {
+  const err = new NotFoundError(404, null, "missing");
+  assert.equal(errorHuman(err), "ub: not_found: missing\n");
+});
+
+test("errorHuman for NetworkError", () => {
+  assert.equal(errorHuman(new NetworkError("ECONNREFUSED")), "ub: network: ECONNREFUSED\n");
+});
+
+test("errorJson for ConfigError has kind=config", () => {
+  const out = errorJson(new ConfigError("missing key"));
+  const parsed = JSON.parse(out);
+  assert.deepEqual(parsed, { error: { kind: "config", message: "missing key" } });
+  assert.ok(out.endsWith("\n"));
+});
+
+test("errorJson for HTTP error includes status and body", () => {
+  const err = new ValidationError(422, { field: "title" }, "validation");
+  const parsed = JSON.parse(errorJson(err));
+  assert.equal(parsed.error.kind, "validation");
+  assert.equal(parsed.error.status, 422);
+  assert.deepEqual(parsed.error.body, { field: "title" });
+});
+
+test("errorJson for NetworkError has kind=network", () => {
+  const parsed = JSON.parse(errorJson(new NetworkError("timeout")));
+  assert.equal(parsed.error.kind, "network");
+  assert.equal(parsed.error.message, "timeout");
+});
+
+test("errorJson for unknown Error falls back to kind=unexpected", () => {
+  const err = new Error("boom");
+  const parsed = JSON.parse(errorJson(err as UserbackError));
+  assert.equal(parsed.error.kind, "unexpected");
+  assert.equal(parsed.error.message, "boom");
 });

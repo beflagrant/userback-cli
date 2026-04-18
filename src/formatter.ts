@@ -1,3 +1,12 @@
+import {
+  ConfigError,
+  NetworkError,
+  HTTPError,
+  UnauthorizedError,
+  NotFoundError,
+  ValidationError,
+  ServerError,
+} from "./client.js";
 import type { Feedback } from "./client.js";
 
 const DASH = "—";
@@ -57,4 +66,38 @@ export function feedbackListHuman(rows: Feedback[]): string {
 function orDashPad(value: unknown, width: number): string {
   const s = value === undefined || value === null || value === "" ? DASH : String(value);
   return s.padEnd(width);
+}
+
+function kindOf(err: Error): string {
+  if (err instanceof ConfigError) return "config";
+  if (err instanceof UnauthorizedError) return "unauthorized";
+  if (err instanceof NotFoundError) return "not_found";
+  if (err instanceof ValidationError) return "validation";
+  if (err instanceof ServerError) return "server";
+  if (err instanceof HTTPError) return "http";
+  if (err instanceof NetworkError) return "network";
+  return "unexpected";
+}
+
+export function errorHuman(err: Error): string {
+  return `ub: ${kindOf(err)}: ${err.message}\n`;
+}
+
+export function errorJson(err: Error): string {
+  const kind = kindOf(err);
+  const payload: {
+    error: {
+      kind: string;
+      message: string;
+      status?: number;
+      body?: unknown;
+    };
+  } = {
+    error: { kind, message: err.message },
+  };
+  if (err instanceof HTTPError) {
+    payload.error.status = err.status;
+    payload.error.body = err.body;
+  }
+  return JSON.stringify(payload) + "\n";
 }
