@@ -102,3 +102,113 @@ export interface UpdateFeedbackAttrs {
   priority?: "low" | "neutral" | "high" | "urgent";
   Workflow?: { id: number } | { name: string };
 }
+
+const DEFAULT_BASE_URL = "https://rest.userback.io/1.0";
+
+type HTTPMethod = "GET" | "POST" | "PATCH" | "DELETE";
+
+interface RequestOptions {
+  body?: unknown;
+  query?: Record<string, string | number | undefined>;
+}
+
+export class UserbackClient {
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+
+  constructor() {
+    const apiKey = process.env.USERBACK_API_KEY;
+    if (!apiKey) {
+      throw new ConfigError("USERBACK_API_KEY is required");
+    }
+    this.apiKey = apiKey;
+    this.baseUrl = process.env.USERBACK_BASE_URL ?? DEFAULT_BASE_URL;
+  }
+
+  async getFeedback(id: number): Promise<Feedback> {
+    return this.request<Feedback>("GET", `/feedback/${id}`);
+  }
+
+  private async request<T>(
+    method: HTTPMethod,
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const url = this.buildUrl(path, options.query);
+    const init: RequestInit = {
+      method,
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+    };
+    if (options.body !== undefined) {
+      init.body = JSON.stringify(options.body);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(url, init);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      throw new NetworkError(message);
+    }
+
+    if (!response.ok) {
+      const body = await this.readBody(response);
+      const message = this.summarizeError(response.status, body);
+      throw this.errorForStatus(response.status, body, message);
+    }
+
+    return (await response.json()) as T;
+  }
+
+  private buildUrl(path: string, query?: Record<string, string | number | undefined>): string {
+    const url = new URL(this.baseUrl + path);
+    if (query) {
+      for (const [k, v] of Object.entries(query)) {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      }
+    }
+    return url.toString();
+  }
+
+  private async readBody(response: Response): Promise<unknown> {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    }
+    try {
+      return await response.text();
+    } catch {
+      return null;
+    }
+  }
+
+  private summarizeError(status: number, body: unknown): string {
+    if (typeof body === "string" && body.length > 0) {
+      return `HTTP ${status}: ${body.slice(0, 200)}`;
+    }
+    if (body && typeof body === "object") {
+      try {
+        return `HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`;
+      } catch {
+        return `HTTP ${status}`;
+      }
+    }
+    return `HTTP ${status}`;
+  }
+
+  private errorForStatus(status: number, body: unknown, message: string): HTTPError {
+    if (status === 401) return new UnauthorizedError(status, body, message);
+    if (status === 404) return new NotFoundError(status, body, message);
+    if (status === 422) return new ValidationError(status, body, message);
+    if (status >= 500) return new ServerError(status, body, message);
+    return new HTTPError(status, body, message);
+  }
+}

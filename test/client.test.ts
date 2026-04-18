@@ -39,3 +39,143 @@ test("UnauthorizedError, NotFoundError, ValidationError, ServerError all extend 
   assert.ok(new ValidationError(422, null, "nope") instanceof HTTPError);
   assert.ok(new ServerError(503, null, "nope") instanceof HTTPError);
 });
+
+import { after, before, beforeEach, describe } from "node:test";
+import { UserbackClient } from "../src/client.js";
+import {
+  installMockAgent,
+  restoreDispatcher,
+  mockPool,
+  TEST_BASE_URL,
+  TEST_ORIGIN,
+  TEST_API_KEY,
+} from "./helpers/mock-agent.js";
+import type { MockAgent } from "undici";
+
+describe("UserbackClient construction", () => {
+  const savedKey = process.env.USERBACK_API_KEY;
+  const savedUrl = process.env.USERBACK_BASE_URL;
+
+  beforeEach(() => {
+    delete process.env.USERBACK_API_KEY;
+    delete process.env.USERBACK_BASE_URL;
+  });
+
+  after(() => {
+    if (savedKey !== undefined) process.env.USERBACK_API_KEY = savedKey;
+    if (savedUrl !== undefined) process.env.USERBACK_BASE_URL = savedUrl;
+  });
+
+  test("throws ConfigError when USERBACK_API_KEY is missing", () => {
+    assert.throws(() => new UserbackClient(), {
+      name: "ConfigError",
+      message: /USERBACK_API_KEY/,
+    });
+  });
+
+  test("constructs successfully with API key set", () => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    const client = new UserbackClient();
+    assert.ok(client);
+  });
+});
+
+describe("UserbackClient request plumbing", () => {
+  let agent: MockAgent;
+
+  before(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  beforeEach(() => {
+    agent = installMockAgent();
+  });
+
+  after(() => {
+    restoreDispatcher();
+  });
+
+  test("sends Authorization: Bearer and returns parsed JSON on 200", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(200, { id: 42, title: "hello" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const got = await client.getFeedback(42);
+    assert.equal(got.id, 42);
+    assert.equal(got.title, "hello");
+  });
+
+  test("translates 401 to UnauthorizedError", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(401, { error: "bad token" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(() => client.getFeedback(42), {
+      name: "UnauthorizedError",
+    });
+  });
+
+  test("translates 404 to NotFoundError", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(404, { error: "not found" });
+
+    const client = new UserbackClient();
+    await assert.rejects(() => client.getFeedback(42), {
+      name: "NotFoundError",
+    });
+  });
+
+  test("translates 422 to ValidationError carrying body", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(422, { field: "title", error: "required" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.getFeedback(42),
+      (err: unknown) => {
+        assert.ok(err instanceof Error && err.name === "ValidationError");
+        const ve = err as { body: unknown; status: number };
+        assert.equal(ve.status, 422);
+        assert.deepEqual(ve.body, { field: "title", error: "required" });
+        return true;
+      },
+    );
+  });
+
+  test("translates 500 to ServerError", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(500, "boom");
+
+    const client = new UserbackClient();
+    await assert.rejects(() => client.getFeedback(42), {
+      name: "ServerError",
+    });
+  });
+
+  test("translates 418 (other 4xx) to generic HTTPError", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .reply(418, "teapot");
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.getFeedback(42),
+      (err: unknown) => {
+        assert.ok(err instanceof Error && err.name === "HTTPError");
+        return true;
+      },
+    );
+  });
+});
