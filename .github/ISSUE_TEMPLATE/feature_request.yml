@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a command, flag, or behavior for userback-cli.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest an improvement. For
+        anything larger than a single flag, please describe the
+        problem and let us figure out the solution together — a PR
+        that front-runs the discussion often has to be rewritten.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem you're trying to solve
+      description: What are you doing today, and what's awkward about it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution (optional)
+      description: If you have a specific shape in mind, describe it. A command signature or sample output works well.
+      render: shell
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Including "did this in jq / my own script" is a valid and useful data point.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: Please confirm these before submitting.
+      options:
+        - label: I've searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This is in scope for a CLI (not a Userback product feature request — those go to Userback).
+          required: true

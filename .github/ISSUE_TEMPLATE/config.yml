@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Userback product support
+    url: https://userback.io
+    about: Questions about the Userback app itself (not this CLI).
+  - name: Security report
+    url: https://github.com/beflagrant/userback-cli/blob/main/SECURITY.md
+    about: Please email rather than filing a public issue.
+  - name: Question or usage help
+    url: https://github.com/beflagrant/userback-cli/discussions
+    about: If Discussions is enabled, prefer it for open-ended questions.

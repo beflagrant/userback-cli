@@ -19,6 +19,13 @@ Every command supports `--json` for machine-readable output, exit codes are
 stable per error class, and the binary is small enough to drop into CI or an
 LLM-driven agent workflow.
 
+> **Status: early.** `userback-cli` is `0.1.0`, pre-first-release. The
+> command set is intentionally small and the output contract is stable
+> (see [ADR 0003](docs/adr/0003-output-stream-contract.md)), but expect
+> additive changes before `1.0`. Bug reports and feature requests during
+> this window directly shape the `1.0` surface — please
+> [open an issue](https://github.com/beflagrant/userback-cli/issues/new/choose).
+
 ## Table of contents
 
 - [Quick start](#quick-start)
@@ -318,15 +325,13 @@ change.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue first for anything larger
-than a typo so we can agree on scope before you invest time in a PR.
+Contributions are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes, run the
+test suite, and structure a PR. For anything larger than a typo, please
+open an issue first so we can agree on scope.
 
-When opening a PR:
-
-- Keep commits small and focused.
-- Add or update tests alongside the code.
-- Run `npm run typecheck && npm test` before pushing.
-- Update relevant docs / ADRs if behavior changes.
+Security issues: do **not** open a public issue; see
+[SECURITY.md](SECURITY.md) for the disclosure path.
 
 ## License
 

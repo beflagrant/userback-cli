@@ -1,0 +1,73 @@
+name: Bug report
+description: Something in userback-cli is broken or behaving unexpectedly.
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill out the
+        form below — the version and Node info in particular save us a
+        round-trip.
+
+        **Security issues should not be filed here.** See
+        [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: input
+    id: ub-version
+    attributes:
+      label: userback-cli version
+      description: Output of `ub --version`.
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Output of `node --version`.
+      placeholder: e.g. v24.15.0
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. macOS 14.5, Ubuntu 22.04, Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      description: The exact command, with any flags. Redact your API key if you paste output.
+      render: shell
+      placeholder: |
+        ub close 1234 --comment "fixed"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include the full output (stdout + stderr). Re-running with `UB_DEBUG=1` helps.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else?
+      description: Workspace/project context, network environment, whether it reproduces against a fresh project, etc.
