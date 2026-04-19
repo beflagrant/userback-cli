@@ -1,147 +1,333 @@
 # userback-cli
 
-Command-line tool for the [Userback](https://userback.io) REST API.
+[![CI](https://github.com/beflagrant/userback-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/beflagrant/userback-cli/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/userback-cli.svg)](https://www.npmjs.com/package/userback-cli)
+[![Node.js](https://img.shields.io/node/v/userback-cli.svg)](https://nodejs.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Install as `userback-cli`; invoke as `ub`. Designed to be called by
-LLM agents in shell pipelines: every command supports `--json` for
-structured output, and exit codes are stable per class of failure.
+A friendly command-line interface for the [Userback](https://userback.io) REST
+API. List feedback, file bugs, post comments, and close items — all from your
+terminal or a shell pipeline.
 
-## Install
+```sh
+ub list --type Bug --limit 5
+ub create --title "Checkout is broken" --body "500 on submit"
+ub close 1234 --comment "Fixed in deploy 2026-04-19"
+```
+
+Every command supports `--json` for machine-readable output, exit codes are
+stable per error class, and the binary is small enough to drop into CI or an
+LLM-driven agent workflow.
+
+## Table of contents
+
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Authentication](#authentication)
+- [Commands](#commands)
+- [Examples](#examples)
+- [JSON mode and exit codes](#json-mode-and-exit-codes)
+- [How `ub close` works](#how-ub-close-works)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Design decisions](#design-decisions)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Quick start
+
+```sh
+# 1. Install
+npm install -g userback-cli
+
+# 2. Point it at your Userback workspace
+export USERBACK_API_KEY="ub_..."          # from Workspace Settings → API Tokens
+export USERBACK_DEFAULT_PROJECT_ID="123"  # your numeric project id
+export USERBACK_DEFAULT_EMAIL="you@example.com"
+
+# 3. Try it
+ub list --limit 5
+```
+
+That's it — you should see the five most recent feedback items from your
+workspace, formatted as a table. If something goes wrong, see
+[Troubleshooting](#troubleshooting).
+
+## Installation
+
+### Requirements
+
+- **Node.js 24 or later** (check with `node --version`). If you need to manage
+  multiple Node versions, [`nvm`](https://github.com/nvm-sh/nvm) is a good
+  choice.
+
+### Install globally (recommended)
 
 ```sh
 npm install -g userback-cli
-ub --help
+ub --version
 ```
 
-Requires Node.js 24 or later.
+### Install per-project
 
-## Configuration
+```sh
+npm install --save-dev userback-cli
+npx ub --help
+```
 
-Set these environment variables:
+### Run without installing
 
-| Var | Required | Purpose |
+```sh
+npx userback-cli --help
+```
+
+## Authentication
+
+`userback-cli` reads all credentials from environment variables so nothing
+sensitive is ever stored on disk by the tool itself.
+
+| Variable | Required | Purpose |
 |---|---|---|
-| `USERBACK_API_KEY` | Yes | Bearer token from Workspace Settings → API Tokens. |
+| `USERBACK_API_KEY` | **Yes** | Bearer token from Workspace Settings → API Tokens. |
+| `USERBACK_DEFAULT_PROJECT_ID` | For `ub create` (unless `--project-id` passed) | Numeric project id. |
+| `USERBACK_DEFAULT_EMAIL` | For `ub create` (unless `--email` passed) | Submitter email on new items. |
 | `USERBACK_BASE_URL` | No | Override the API base URL. Defaults to `https://rest.userback.io/1.0`. |
-| `USERBACK_DEFAULT_PROJECT_ID` | Required for `ub create` unless `--project-id` is passed | Numeric project id. |
-| `USERBACK_DEFAULT_EMAIL` | Required for `ub create` unless `--email` is passed | Submitter email. |
-| `USERBACK_CLOSED_STATUS` | No | Workflow stage name for `ub close`. Defaults to `"Resolved"` (the terminal stage in the default Userback workflow). See below. |
+| `USERBACK_CLOSED_STATUS` | No | Workflow stage name (or numeric id) for `ub close`. Defaults to `"Resolved"`, the terminal stage of the default Userback workflow. |
 | `UB_DEBUG` | No | Set to `1` to include stack traces on unexpected errors. |
+
+### Getting your API key
+
+1. Open your Userback workspace.
+2. Go to **Workspace Settings → API Tokens**.
+3. Generate a new token and copy it into `USERBACK_API_KEY`.
+
+### Tip: use a `.env` file
+
+If you prefer not to export variables in your shell, any `.env` loader works.
+For ad-hoc one-offs, the shell's inline form is easiest:
+
+```sh
+USERBACK_API_KEY="ub_..." ub list --limit 1
+```
 
 ## Commands
 
-```sh
-ub list [--json] [--limit N] [--type Bug|Idea|General] [--project-id ID] [--status NAME]
-ub show <id> [--json]
-ub create --title "..." --body "..." [--type ...] [--priority ...] [--project-id ID] [--email E] [--json]
-ub close <id> [--comment "..."] [--json]
+```text
+ub list    [--json] [--limit N] [--type Bug|Idea|General] [--project-id ID] [--status NAME]
+ub show    <id> [--json]
+ub create  --title "..." --body "..." [--type ...] [--priority low|neutral|high|urgent]
+           [--project-id ID] [--email E] [--json]
+ub close   <id> [--comment "..."] [--json]
 ub comment <id> --body "..." [--json]
 ```
 
+Run `ub <command> --help` for the canonical list of flags for each command.
+
 ## Examples
 
-List the 10 most recent Bug-type feedback items, pretty-printed:
+### List recent bugs, formatted as a table
 
 ```sh
 ub list --type Bug --limit 10
 ```
 
-Fetch everything in JSON and pipe to `jq`:
+### Pipe everything into `jq`
 
 ```sh
 ub list --json | jq '.[] | {id, title, priority}'
 ```
 
-File a new bug:
+### Filter by workflow stage
 
 ```sh
-ub create --title "Bug in checkout" --body "500 on submit"
+ub list --status "In Progress"
 ```
 
-View a single feedback item:
+### File a new bug
 
 ```sh
-ub show 123
+ub create \
+  --title "Checkout returns 500" \
+  --body "Repro: add item, click Pay, see spinner forever" \
+  --type Bug \
+  --priority high
 ```
 
-Close a feedback item with a note:
+### View a single item
 
 ```sh
-ub close 123 --comment "Fixed in deploy 2026-04-18"
+ub show 1234
+ub show 1234 --json | jq .description
 ```
 
-Add a comment without closing:
+### Close with a resolution note
 
 ```sh
-ub comment 123 --body "Reproduced on Safari"
+ub close 1234 --comment "Fixed in deploy 2026-04-19"
 ```
 
-## How `close` works
+### Add a comment without closing
 
-The Userback API has no plain "status" field. Closing a feedback item
-means PATCHing its `Workflow` to a named stage. By default, `ub close`
-sends `{ "Workflow": { "name": "Resolved" } }`. Override the name with
-`USERBACK_CLOSED_STATUS`, or set it to a numeric id to target a stage
-by id instead of name:
+```sh
+ub comment 1234 --body "Reproduced on Safari 17.4"
+```
+
+## JSON mode and exit codes
+
+The CLI has a stable output contract so it's safe to script against.
+
+### Streams
+
+- **Human mode (default):** success → `stdout`, errors → `stderr`.
+- **JSON mode (`--json`):** success *and* errors → `stdout`, as JSON. This
+  lets pipelines like `ub list --json | jq` handle failures without
+  special-casing `stderr`. The exit code tells you whether to parse the
+  payload as a success response or as an error envelope.
+
+### Error envelope
+
+In JSON mode, failures look like:
+
+```json
+{
+  "error": {
+    "kind": "validation",
+    "message": "HTTP 422: {\"message\":\"Workflow not found\"}",
+    "status": 422,
+    "body": { "message": "Workflow not found", "status": 422 }
+  }
+}
+```
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Unexpected error |
+| `2` | Configuration error (missing env var, bad flag) |
+| `3` | Unauthorized (`401`) |
+| `4` | Not found (`404`) |
+| `5` | Validation (`422`) |
+| `6` | Other HTTP error (including rate limits) |
+| `7` | Network / transport error |
+
+In shell:
+
+```sh
+if ub show 1234 --json > item.json; then
+  echo "Got it"
+else
+  case $? in
+    4) echo "No such feedback" ;;
+    3) echo "Token rejected" ;;
+    *) echo "Something else went wrong" ;;
+  esac
+fi
+```
+
+## How `ub close` works
+
+The Userback API has no standalone "status" field. Closing a feedback item
+means PATCHing its `Workflow` to a terminal stage. By default, `ub close`
+sends:
+
+```json
+{ "Workflow": { "name": "Resolved" } }
+```
+
+If your workspace uses a different label (or you prefer targeting stages by
+id), set `USERBACK_CLOSED_STATUS`:
 
 ```sh
 export USERBACK_CLOSED_STATUS="Will Not Do"   # by name
-export USERBACK_CLOSED_STATUS="9"             # by id
+export USERBACK_CLOSED_STATUS="9"             # by id (numeric string)
 ```
 
-If your workspace uses a different terminal stage label, configure it
-once and every subsequent `ub close` uses it.
+The full rationale lives in
+[ADR 0001](docs/adr/0001-close-via-workflow-stage.md).
 
-See [ADR 0001](docs/adr/0001-close-via-workflow-stage.md) for the full
-rationale.
+## Troubleshooting
 
-## Output contract
+### `ub: config: USERBACK_API_KEY is required`
 
-- **Human mode (default):** success → stdout, errors → stderr.
-- **JSON mode (`--json`):** success *and* errors → stdout as JSON. This
-  lets `ub list --json | jq` handle failures without special-casing
-  stderr. The exit code tells you whether to parse as success or as
-  an error envelope.
-- **Exit codes:** 0 success, 2 config, 3 unauthorized, 4 not found,
-  5 validation, 6 other HTTP error, 7 network, 1 unexpected.
+Set `USERBACK_API_KEY` in your shell (see [Authentication](#authentication)).
 
-## Assumptions requiring verification
+### `ub: validation: HTTP 422: {"message":"Workflow not found"}` when closing
 
-This MVP ships with a handful of API details inferred from incomplete
-documentation. If you hit surprising behavior, these are the likely
-causes:
+Your workspace's workflow doesn't have a stage named `Resolved`. Find the
+real terminal stage name (visible on the Status Board) and set it:
 
-- **Feedback response shape** — the human formatter renders `—` for
-  any field the API omits, so unexpected fields don't break display.
-- **Workflow stage by name** — `PATCH` accepts `Workflow.name`. If
-  your workspace rejects it, set `USERBACK_CLOSED_STATUS` to the
-  stage's numeric id.
-- **OData filter syntax** — `list --type` and `--project-id` compose
-  `eq` expressions with single-quoted strings. Adjust if the API
-  returns 422 on filters.
-- **429 / rate limits** — MVP does not retry; 429 exits 6.
-- **Comment visibility** — `isPublic` is unset, so the API default
-  applies.
+```sh
+export USERBACK_CLOSED_STATUS="Done"
+```
 
-Full design notes live in
-[`docs/superpowers/specs/2026-04-18-userback-cli-mvp-design.md`](docs/superpowers/specs/2026-04-18-userback-cli-mvp-design.md).
+### `ub: unauthorized: HTTP 401`
+
+Your token is missing, expired, or scoped incorrectly. Regenerate it in
+Workspace Settings → API Tokens.
+
+### `ub: network: ...`
+
+DNS, proxy, or TLS failure reaching `rest.userback.io`. Re-run with
+`UB_DEBUG=1` for a stack trace.
+
+### Something else
+
+Re-run with `UB_DEBUG=1` to include a stack trace, or open an issue with
+the failing command and the full output.
 
 ## Development
 
 ```sh
+git clone https://github.com/beflagrant/userback-cli
+cd userback-cli
 npm install
-npm test
-npm run typecheck
-npm run build
+
+npm test          # run the full test suite
+npm run typecheck # tsc --noEmit
+npm run build     # emit dist/ for publishing
 ./bin/ub.js --help
 ```
 
-## Decisions
+The test suite covers both the HTTP client (via `undici`'s `MockAgent`) and
+the CLI as a whole (by spawning `./bin/ub.js` against a local `node:http`
+server). No live API calls are made.
 
-See [`docs/adr/`](docs/adr/) for decision records covering the stack
-choice, output contract, packaging, and the close-via-workflow
-mechanism.
+### Project layout
+
+```text
+src/
+  cli.ts         # Commander wiring and argument parsing
+  client.ts      # HTTP client + typed error hierarchy
+  formatter.ts   # human / JSON output formatters
+bin/ub.js        # shebang stub that imports dist/cli.js
+test/            # node:test specs mirroring src/
+docs/
+  adr/           # architecture decision records
+  superpowers/   # design notes and plans
+```
+
+## Design decisions
+
+Significant choices are captured as lightweight ADRs in
+[`docs/adr/`](docs/adr/): the stack choice, the output contract, the
+publishing model, and the close-via-workflow mechanism. Start there if
+you're curious *why* something works the way it does before suggesting a
+change.
+
+## Contributing
+
+Contributions are welcome. Please open an issue first for anything larger
+than a typo so we can agree on scope before you invest time in a PR.
+
+When opening a PR:
+
+- Keep commits small and focused.
+- Add or update tests alongside the code.
+- Run `npm run typecheck && npm test` before pushing.
+- Update relevant docs / ADRs if behavior changes.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE) © Flagrant
