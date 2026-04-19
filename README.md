@@ -141,9 +141,11 @@ USERBACK_API_KEY="ub_..." ub list --limit 1
 - `ub projects list`, `ub projects show <id>` — discover projects
 
 Full flag reference with exit codes: [docs/commands.md](docs/commands.md).
-Run `ub <command> --help` for the canonical flags for each.
 
 ## Examples
+
+A few canonical patterns below; the full cookbook lives in
+[docs/recipes.md](docs/recipes.md).
 
 ### Discover your projects
 
@@ -182,11 +184,6 @@ ub create \
 ```sh
 ub close 1234 --comment "Fixed in deploy 2026-04-19"
 ```
-
-More patterns — filtering by workflow stage, viewing a single item,
-commenting, bulk-closing, nightly exports, CI integration —
-live in [docs/recipes.md](docs/recipes.md) and
-[docs/ci-examples.md](docs/ci-examples.md).
 
 ## JSON mode and exit codes
 
