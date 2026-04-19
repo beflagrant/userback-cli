@@ -196,6 +196,23 @@ function buildProgram(): Command {
       }
     });
 
+  program
+    .command("comment <feedbackId>")
+    .description("Add a comment to a feedback item")
+    .requiredOption("--body <text>", "Comment body")
+    .option("--json", "Emit JSON instead of the new comment id")
+    .action(async (feedbackIdRaw: string, opts: { body: string; json?: boolean }) => {
+      const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
+      const { UserbackClient } = await import("./client.js");
+      const client = new UserbackClient();
+      const created = await client.createComment({ feedbackId: id, comment: opts.body });
+      if (opts.json) {
+        process.stdout.write(JSON.stringify(created) + "\n");
+      } else {
+        process.stdout.write(`${created.id}\n`);
+      }
+    });
+
   return program;
 }
 

@@ -468,3 +468,52 @@ describe("ub close", () => {
     assert.equal(parsed.comment.error.kind, "server");
   });
 });
+
+describe("ub comment", () => {
+  let server: TestServer;
+
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("POST /feedback/comment with feedbackId in body", async () => {
+    server.setHandler(async (req, res) => {
+      assert.equal(req.method, "POST");
+      assert.equal(req.url, "/1.0/feedback/comment");
+      const body = JSON.parse(await collectBody(req));
+      assert.deepEqual(body, { feedbackId: 42, comment: "hello" });
+      res.setHeader("content-type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 888 }));
+    });
+    const { code, stdout } = await runCli(["comment", "42", "--body", "hello"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.match(stdout, /888/);
+  });
+
+  test("--json prints parseable response", async () => {
+    server.setHandler((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 888, comment: "hello" }));
+    });
+    const { code, stdout } = await runCli(
+      ["comment", "42", "--body", "hello", "--json"],
+      { USERBACK_API_KEY: "test-key", USERBACK_BASE_URL: server.url },
+    );
+    assert.equal(code, 0);
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.id, 888);
+  });
+
+  test("missing --body errors from Commander (exit 1)", async () => {
+    const { code, stderr } = await runCli(["comment", "42"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.notEqual(code, 0);
+    assert.match(stderr, /body/);
+  });
+});
