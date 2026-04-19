@@ -208,7 +208,7 @@ function buildProgram(): Command {
       if (opts.json) {
         process.stdout.write(JSON.stringify(created) + "\n");
       } else {
-        process.stdout.write(`${created.id}\n`);
+        process.stdout.write(`${created.id ?? "—"}\n`);
       }
     });
 

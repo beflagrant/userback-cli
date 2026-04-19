@@ -98,7 +98,11 @@ describe("UserbackClient request plumbing", () => {
 
   test("sends Authorization: Bearer and returns parsed JSON on 200", async () => {
     mockPool(agent, TEST_ORIGIN)
-      .intercept({ path: "/1.0/feedback/42", method: "GET" })
+      .intercept({
+        path: "/1.0/feedback/42",
+        method: "GET",
+        headers: { authorization: `Bearer ${TEST_API_KEY}` },
+      })
       .reply(200, { id: 42, title: "hello" }, {
         headers: { "content-type": "application/json" },
       });
