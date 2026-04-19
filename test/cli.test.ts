@@ -221,3 +221,126 @@ describe("ub list", () => {
     assert.equal(stderr, "");
   });
 });
+
+describe("ub create", () => {
+  let server: TestServer;
+
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("sends required fields; prints id on success", async () => {
+    server.setHandler(async (req, res) => {
+      assert.equal(req.method, "POST");
+      assert.equal(req.url, "/1.0/feedback");
+      const body = await collectBody(req);
+      const parsed = JSON.parse(body);
+      assert.equal(parsed.projectId, 7);
+      assert.equal(parsed.email, "me@example.com");
+      assert.equal(parsed.feedbackType, "General");
+      assert.equal(parsed.title, "hello");
+      assert.equal(parsed.description, "world");
+      res.setHeader("content-type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 123 }));
+    });
+
+    const { code, stdout } = await runCli(
+      ["create", "--title", "hello", "--body", "world"],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_PROJECT_ID: "7",
+        USERBACK_DEFAULT_EMAIL: "me@example.com",
+      },
+    );
+    assert.equal(code, 0);
+    assert.equal(stdout.trim(), "123");
+  });
+
+  test("--json prints full response", async () => {
+    server.setHandler((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 123, title: "hello" }));
+    });
+    const { code, stdout } = await runCli(
+      ["create", "--title", "hello", "--body", "world", "--json"],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_PROJECT_ID: "7",
+        USERBACK_DEFAULT_EMAIL: "me@example.com",
+      },
+    );
+    assert.equal(code, 0);
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.id, 123);
+  });
+
+  test("missing project-id and env var exits 2 ConfigError", async () => {
+    const { code, stderr } = await runCli(
+      ["create", "--title", "hello", "--body", "world"],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_EMAIL: "me@example.com",
+      },
+    );
+    assert.equal(code, 2);
+    assert.match(stderr, /project-id/i);
+  });
+
+  test("missing email and env var exits 2 ConfigError", async () => {
+    const { code, stderr } = await runCli(
+      ["create", "--title", "hello", "--body", "world"],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_PROJECT_ID: "7",
+      },
+    );
+    assert.equal(code, 2);
+    assert.match(stderr, /email/i);
+  });
+
+  test("invalid --type exits 2", async () => {
+    const { code, stderr } = await runCli(
+      ["create", "--title", "hello", "--body", "world", "--type", "Nope"],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_PROJECT_ID: "7",
+        USERBACK_DEFAULT_EMAIL: "me@example.com",
+      },
+    );
+    assert.equal(code, 2);
+    assert.match(stderr, /type/i);
+  });
+
+  test("--priority and --type override defaults", async () => {
+    server.setHandler(async (req, res) => {
+      const body = JSON.parse(await collectBody(req));
+      assert.equal(body.feedbackType, "Bug");
+      assert.equal(body.priority, "high");
+      res.setHeader("content-type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 1 }));
+    });
+    const { code } = await runCli(
+      [
+        "create",
+        "--title", "t",
+        "--body", "b",
+        "--type", "Bug",
+        "--priority", "high",
+      ],
+      {
+        USERBACK_API_KEY: "test-key",
+        USERBACK_BASE_URL: server.url,
+        USERBACK_DEFAULT_PROJECT_ID: "7",
+        USERBACK_DEFAULT_EMAIL: "me@example.com",
+      },
+    );
+    assert.equal(code, 0);
+  });
+});

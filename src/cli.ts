@@ -25,6 +25,14 @@ function validateFeedbackType(t: string): void {
   }
 }
 
+const PRIORITIES = new Set(["low", "neutral", "high", "urgent"]);
+
+function validatePriority(p: string): void {
+  if (!PRIORITIES.has(p)) {
+    throw new ConfigError(`--priority must be one of low|neutral|high|urgent, got: ${p}`);
+  }
+}
+
 function escapeODataString(s: string): string {
   return s.replaceAll("'", "''");
 }
@@ -93,6 +101,53 @@ function buildProgram(): Command {
       const client = new UserbackClient();
       const rows = await client.listFeedback({ limit, filter });
       process.stdout.write(opts.json ? feedbackListJson(rows) : feedbackListHuman(rows));
+    });
+
+  program
+    .command("create")
+    .description("Create a new feedback item")
+    .requiredOption("--title <title>", "Feedback title")
+    .requiredOption("--body <body>", "Feedback description")
+    .option("--type <type>", "General|Bug|Idea", "General")
+    .option("--project-id <id>", "Overrides USERBACK_DEFAULT_PROJECT_ID")
+    .option("--priority <priority>", "low|neutral|high|urgent")
+    .option("--email <email>", "Overrides USERBACK_DEFAULT_EMAIL")
+    .option("--json", "Emit JSON instead of printing just the new id")
+    .action(async (opts: {
+      title: string;
+      body: string;
+      type: string;
+      projectId?: string;
+      priority?: string;
+      email?: string;
+      json?: boolean;
+    }) => {
+      validateFeedbackType(opts.type);
+      const projectIdRaw = opts.projectId ?? process.env.USERBACK_DEFAULT_PROJECT_ID;
+      if (!projectIdRaw) {
+        throw new ConfigError("--project-id or USERBACK_DEFAULT_PROJECT_ID is required");
+      }
+      const projectId = parsePositiveInt(projectIdRaw, "project-id");
+      const email = opts.email ?? process.env.USERBACK_DEFAULT_EMAIL;
+      if (!email) {
+        throw new ConfigError("--email or USERBACK_DEFAULT_EMAIL is required");
+      }
+      if (opts.priority !== undefined) {
+        validatePriority(opts.priority);
+      }
+
+      const { UserbackClient } = await import("./client.js");
+      const { feedbackJson, createdIdHuman } = await import("./formatter.js");
+      const client = new UserbackClient();
+      const created = await client.createFeedback({
+        projectId,
+        email,
+        feedbackType: opts.type as "General" | "Bug" | "Idea",
+        title: opts.title,
+        description: opts.body,
+        priority: opts.priority as "low" | "neutral" | "high" | "urgent" | undefined,
+      });
+      process.stdout.write(opts.json ? feedbackJson(created) : createdIdHuman(created));
     });
 
   return program;
