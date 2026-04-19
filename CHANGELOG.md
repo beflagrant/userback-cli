@@ -11,6 +11,9 @@ with notes derived from this file.
 
 ### Added
 
+- Automatic `.env` loading from the current working directory. Real
+  environment variables take precedence. No new runtime dependencies
+  — parser lives in `src/env.ts`.
 - `CONTRIBUTING.md`, `SECURITY.md`, and this changelog.
 - Issue templates (bug / feature / question) and PR template under
   `.github/`.

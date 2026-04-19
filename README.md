@@ -110,8 +110,24 @@ sensitive is ever stored on disk by the tool itself.
 
 ### Tip: use a `.env` file
 
-If you prefer not to export variables in your shell, any `.env` loader works.
-For ad-hoc one-offs, the shell's inline form is easiest:
+`ub` loads a `.env` file from the current directory automatically, so
+you can keep credentials out of your shell profile:
+
+```sh
+# .env
+USERBACK_API_KEY=ub_...
+USERBACK_DEFAULT_PROJECT_ID=123
+USERBACK_DEFAULT_EMAIL=you@example.com
+```
+
+Any `KEY=value` lines are loaded into `process.env`. Lines beginning
+with `#` are treated as comments. Values wrapped in single or double
+quotes have the outer quotes stripped. **Real environment variables
+always win** — if you set `USERBACK_API_KEY` in your shell, the `.env`
+value is ignored.
+
+Add `.env` to your `.gitignore`. For ad-hoc one-offs, the inline form
+still works:
 
 ```sh
 USERBACK_API_KEY="ub_..." ub list --limit 1

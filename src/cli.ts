@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { createRequire } from "node:module";
 import { UserbackError, HTTPError, ConfigError, NetworkError, UnauthorizedError, NotFoundError, ValidationError, ServerError } from "./client.js";
 import { errorHuman, errorJson, errorPayload } from "./formatter.js";
+import { loadDotenv } from "./env.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -250,6 +251,7 @@ function reportError(err: Error, argv: string[]): void {
 }
 
 export async function run(argv: string[]): Promise<never> {
+  loadDotenv();
   const program = buildProgram();
   try {
     await program.parseAsync(argv);

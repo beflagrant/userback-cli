@@ -25,7 +25,12 @@ async function runCli(args: string[], env: Record<string, string> = {}): Promise
     ["--import", "tsx", "src/cli-entry.ts", ...args],
     {
       cwd: REPO_ROOT,
-      env: { ...process.env, ...env, PATH: process.env.PATH ?? "" },
+      env: {
+        ...process.env,
+        UB_SKIP_DOTENV: "1",
+        ...env,
+        PATH: process.env.PATH ?? "",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
