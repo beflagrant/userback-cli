@@ -19,11 +19,13 @@ Every command supports `--json` for machine-readable output, exit codes are
 stable per error class, and the binary is small enough to drop into CI or an
 LLM-driven agent workflow.
 
-> **Status: early.** `userback-cli` is `0.1.0`, pre-first-release. The
-> command set is intentionally small and the output contract is stable
-> (see [ADR 0003](docs/adr/0003-output-stream-contract.md)), but expect
-> additive changes before `1.0`. Bug reports and feature requests during
-> this window directly shape the `1.0` surface — please
+> **Status: early and unofficial.** `userback-cli` is a community
+> tool, not affiliated with or endorsed by Userback. It's `0.1.0`,
+> pre-first-release. The command set is intentionally small and the
+> output contract is stable (see
+> [ADR 0003](docs/adr/0003-output-stream-contract.md)), but expect
+> additive changes before `1.0`. Bug reports and feature requests
+> during this window directly shape the `1.0` surface — please
 > [open an issue](https://github.com/beflagrant/userback-cli/issues/new/choose).
 
 ## Table of contents
