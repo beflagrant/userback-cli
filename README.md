@@ -62,6 +62,11 @@ That's it — you should see the five most recent feedback items from your
 workspace, formatted as a table. If something goes wrong, see
 [Troubleshooting](#troubleshooting).
 
+### Tip: use a `.env` file
+
+`ub` loads a `.env` file from the current directory automatically, so
+you can keep credentials out of your shell profile.
+
 ## Installation
 
 ### Requirements
@@ -109,31 +114,6 @@ sensitive is ever stored on disk by the tool itself.
 1. Open your Userback workspace.
 2. Go to **Workspace Settings → API Tokens**.
 3. Generate a new token and copy it into `USERBACK_API_KEY`.
-
-### Tip: use a `.env` file
-
-`ub` loads a `.env` file from the current directory automatically, so
-you can keep credentials out of your shell profile:
-
-```sh
-# .env
-USERBACK_API_KEY=ub_...
-USERBACK_DEFAULT_PROJECT_ID=123
-USERBACK_DEFAULT_EMAIL=you@example.com
-```
-
-Any `KEY=value` lines are loaded into `process.env`. Lines beginning
-with `#` are treated as comments. Values wrapped in single or double
-quotes have the outer quotes stripped. **Real environment variables
-always win** — if you set `USERBACK_API_KEY` in your shell, the `.env`
-value is ignored.
-
-Add `.env` to your `.gitignore`. For ad-hoc one-offs, the inline form
-still works:
-
-```sh
-USERBACK_API_KEY="ub_..." ub list --limit 1
-```
 
 ## Commands
 
