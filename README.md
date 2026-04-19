@@ -172,12 +172,6 @@ ub list --type Bug --limit 10
 ub list --json | jq '.[] | {id, title, priority}'
 ```
 
-### Filter by workflow stage
-
-```sh
-ub list --status "In Progress"
-```
-
 ### File a new bug
 
 ```sh
@@ -188,24 +182,16 @@ ub create \
   --priority high
 ```
 
-### View a single item
-
-```sh
-ub show 1234
-ub show 1234 --json | jq .description
-```
-
 ### Close with a resolution note
 
 ```sh
 ub close 1234 --comment "Fixed in deploy 2026-04-19"
 ```
 
-### Add a comment without closing
-
-```sh
-ub comment 1234 --body "Reproduced on Safari 17.4"
-```
+More patterns — filtering by workflow stage, viewing a single item,
+commenting, bulk-closing, nightly exports, CI integration —
+live in [docs/recipes.md](docs/recipes.md) and
+[docs/ci-examples.md](docs/ci-examples.md).
 
 ## JSON mode and exit codes
 

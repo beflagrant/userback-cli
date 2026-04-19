@@ -4,12 +4,36 @@ Real-world scripting patterns that chain `ub` commands with `jq`,
 `xargs`, and plain shell. Every recipe below is copy-paste ready;
 substitute your own ids and filters.
 
+- [One-liners](#one-liners)
 - [Nightly bug export to JSON](#nightly-bug-export-to-json)
 - [Triage: show me all urgent untriaged bugs](#triage-show-me-all-urgent-untriaged-bugs)
 - [Bulk close items matching a filter](#bulk-close-items-matching-a-filter)
 - [File a bug from a failing CI job](#file-a-bug-from-a-failing-ci-job)
 - [Pipeline-safe error handling](#pipeline-safe-error-handling)
 - [Agent workflow: summarize open bugs](#agent-workflow-summarize-open-bugs)
+
+---
+
+## One-liners
+
+Filter by workflow stage:
+
+```sh
+ub list --status "In Progress"
+```
+
+View a single item (human and JSON):
+
+```sh
+ub show 1234
+ub show 1234 --json | jq .description
+```
+
+Add a comment without closing:
+
+```sh
+ub comment 1234 --body "Reproduced on Safari 17.4"
+```
 
 ---
 
