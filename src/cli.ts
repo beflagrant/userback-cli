@@ -37,6 +37,14 @@ function escapeODataString(s: string): string {
   return s.replaceAll("'", "''");
 }
 
+function buildCloseWorkflow(): { id: number } | { name: string } {
+  const raw = process.env.USERBACK_CLOSED_STATUS;
+  if (raw !== undefined && /^\d+$/.test(raw)) {
+    return { id: Number(raw) };
+  }
+  return { name: raw ?? "Closed" };
+}
+
 function buildProgram(): Command {
   const program = new Command();
   program
@@ -148,6 +156,44 @@ function buildProgram(): Command {
         priority: opts.priority as "low" | "neutral" | "high" | "urgent" | undefined,
       });
       process.stdout.write(opts.json ? feedbackJson(created) : createdIdHuman(created));
+    });
+
+  program
+    .command("close <feedbackId>")
+    .description("Close a feedback item by advancing its workflow stage")
+    .option("--comment <text>", "Post a comment after closing")
+    .option("--json", "Emit JSON output")
+    .action(async (feedbackIdRaw: string, opts: { comment?: string; json?: boolean }) => {
+      const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
+      const workflow = buildCloseWorkflow();
+
+      const { UserbackClient } = await import("./client.js");
+      const { errorJson } = await import("./formatter.js");
+      const client = new UserbackClient();
+
+      await client.updateFeedback(id, { Workflow: workflow });
+
+      if (opts.comment !== undefined) {
+        try {
+          await client.createComment({ feedbackId: id, comment: opts.comment });
+        } catch (commentErr) {
+          const err = commentErr instanceof Error ? commentErr : new Error(String(commentErr));
+          if (opts.json) {
+            const body = { closed: true, comment: JSON.parse(errorJson(err)) };
+            process.stdout.write(JSON.stringify(body) + "\n");
+          } else {
+            process.stderr.write(`ub: closed ${id} but failed to post comment\n`);
+            process.stderr.write(`ub: ${err.message}\n`);
+          }
+          process.exit(6);
+        }
+      }
+
+      if (opts.json) {
+        process.stdout.write(JSON.stringify({ closed: true, id }) + "\n");
+      } else {
+        process.stdout.write(`closed ${id}\n`);
+      }
     });
 
   return program;

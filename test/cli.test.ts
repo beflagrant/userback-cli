@@ -344,3 +344,127 @@ describe("ub create", () => {
     assert.equal(code, 0);
   });
 });
+
+describe("ub close", () => {
+  let server: TestServer;
+
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("PATCH with Workflow.name='Closed' by default", async () => {
+    server.setHandler(async (req, res) => {
+      assert.equal(req.method, "PATCH");
+      assert.equal(req.url, "/1.0/feedback/42");
+      const body = JSON.parse(await collectBody(req));
+      assert.deepEqual(body, { Workflow: { name: "Closed" } });
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ id: 42 }));
+    });
+    const { code, stdout } = await runCli(["close", "42"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.match(stdout, /closed/i);
+  });
+
+  test("USERBACK_CLOSED_STATUS=Shipped sends name=Shipped", async () => {
+    server.setHandler(async (req, res) => {
+      const body = JSON.parse(await collectBody(req));
+      assert.deepEqual(body, { Workflow: { name: "Shipped" } });
+      res.setHeader("content-type", "application/json");
+      res.end("{}");
+    });
+    const { code } = await runCli(["close", "42"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+      USERBACK_CLOSED_STATUS: "Shipped",
+    });
+    assert.equal(code, 0);
+  });
+
+  test("USERBACK_CLOSED_STATUS=9 sends numeric id", async () => {
+    server.setHandler(async (req, res) => {
+      const body = JSON.parse(await collectBody(req));
+      assert.deepEqual(body, { Workflow: { id: 9 } });
+      res.setHeader("content-type", "application/json");
+      res.end("{}");
+    });
+    const { code } = await runCli(["close", "42"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+      USERBACK_CLOSED_STATUS: "9",
+    });
+    assert.equal(code, 0);
+  });
+
+  test("--comment sends PATCH then POST /feedback/comment", async () => {
+    let sawPatch = false;
+    let sawComment = false;
+    server.setHandler(async (req, res) => {
+      if (req.method === "PATCH" && req.url === "/1.0/feedback/42") {
+        sawPatch = true;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ id: 42 }));
+      } else if (req.method === "POST" && req.url === "/1.0/feedback/comment") {
+        const body = JSON.parse(await collectBody(req));
+        assert.deepEqual(body, { feedbackId: 42, comment: "fixed" });
+        sawComment = true;
+        res.setHeader("content-type", "application/json");
+        res.statusCode = 201;
+        res.end(JSON.stringify({ id: 101 }));
+      } else {
+        res.statusCode = 500;
+        res.end();
+      }
+    });
+    const { code } = await runCli(["close", "42", "--comment", "fixed"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.ok(sawPatch);
+    assert.ok(sawComment);
+  });
+
+  test("PATCH success + comment failure → exit 6, partial success on stderr", async () => {
+    server.setHandler(async (req, res) => {
+      if (req.method === "PATCH") {
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ id: 42 }));
+      } else if (req.method === "POST") {
+        res.statusCode = 500;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ error: "boom" }));
+      }
+    });
+    const { code, stderr } = await runCli(["close", "42", "--comment", "x"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 6);
+    assert.match(stderr, /closed/i);
+    assert.match(stderr, /comment/i);
+  });
+
+  test("--json partial success emits structured JSON on stdout", async () => {
+    server.setHandler(async (req, res) => {
+      if (req.method === "PATCH") {
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ id: 42 }));
+      } else {
+        res.statusCode = 500;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ error: "boom" }));
+      }
+    });
+    const { code, stdout } = await runCli(
+      ["close", "42", "--comment", "x", "--json"],
+      { USERBACK_API_KEY: "test-key", USERBACK_BASE_URL: server.url },
+    );
+    assert.equal(code, 6);
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.closed, true);
+    assert.equal(parsed.comment.error.kind, "server");
+  });
+});
