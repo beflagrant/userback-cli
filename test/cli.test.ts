@@ -517,3 +517,17 @@ describe("ub comment", () => {
     assert.match(stderr, /body/);
   });
 });
+
+describe("build artifact (post tsc)", () => {
+  test("./bin/ub.js --version works under plain node", async () => {
+    const child = spawn(process.execPath, [BIN, "--version"], {
+      cwd: REPO_ROOT,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    child.stdout.on("data", (b) => { stdout += b.toString(); });
+    const [code] = await once(child, "exit");
+    assert.equal(code, 0);
+    assert.equal(stdout.trim(), PKG_VERSION);
+  });
+});
