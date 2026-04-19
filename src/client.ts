@@ -105,6 +105,16 @@ export interface UpdateFeedbackAttrs {
 
 const DEFAULT_BASE_URL = "https://rest.userback.io/1.0";
 
+function unwrapList<T>(raw: unknown): T[] {
+  if (Array.isArray(raw)) return raw as T[];
+  if (raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)) {
+    return (raw as { data: T[] }).data;
+  }
+  throw new UserbackError(
+    `Expected a list response (array or {data: []}), got: ${typeof raw}`,
+  );
+}
+
 type HTTPMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 interface RequestOptions {
@@ -136,7 +146,8 @@ export class UserbackClient {
       sort: options.sort,
       filter: options.filter,
     };
-    return this.request<Feedback[]>("GET", "/feedback", { query });
+    const raw = await this.request<unknown>("GET", "/feedback", { query });
+    return unwrapList<Feedback>(raw);
   }
 
   async createFeedback(attrs: CreateFeedbackAttrs): Promise<Feedback> {

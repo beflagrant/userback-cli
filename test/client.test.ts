@@ -232,6 +232,30 @@ describe("listFeedback", () => {
     });
     assert.deepEqual(rows, []);
   });
+
+  test("unwraps {data: [...]} envelope the live API returns", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback?page=1&limit=25", method: "GET" })
+      .reply(200, { data: [{ id: 7 }, { id: 8 }] }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const rows = await client.listFeedback({});
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0]?.id, 7);
+  });
+
+  test("throws UserbackError when response is neither array nor {data}", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/feedback?page=1&limit=25", method: "GET" })
+      .reply(200, { unexpected: true }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(client.listFeedback({}), /Expected a list response/);
+  });
 });
 
 describe("createFeedback", () => {
