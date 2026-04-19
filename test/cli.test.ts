@@ -523,6 +523,101 @@ describe("ub comment", () => {
   });
 });
 
+describe("ub projects list", () => {
+  let server: TestServer;
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("human mode renders a table from {data: [...]} response", async () => {
+    server.setHandler((req, res) => {
+      assert.equal(req.method, "GET");
+      assert.equal(req.url, "/1.0/project");
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({
+        data: [
+          { id: 1, name: "alpha", projectType: "feedback", isArchived: false },
+          { id: 2, name: "beta",  projectType: "bug",      isArchived: true  },
+        ],
+      }));
+    });
+
+    const { code, stdout } = await runCli(["projects", "list"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.match(stdout, /ID\s+NAME/);
+    assert.match(stdout, /alpha/);
+    assert.match(stdout, /beta/);
+  });
+
+  test("--json emits a parseable array", async () => {
+    server.setHandler((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ data: [{ id: 1, name: "alpha" }] }));
+    });
+    const { code, stdout } = await runCli(["projects", "list", "--json"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.length, 1);
+    assert.equal(parsed[0].id, 1);
+  });
+});
+
+describe("ub projects show", () => {
+  let server: TestServer;
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("renders human block with members", async () => {
+    server.setHandler((req, res) => {
+      assert.equal(req.method, "GET");
+      assert.equal(req.url, "/1.0/project/139657");
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({
+        id: 139657,
+        name: "My first project",
+        projectType: "feedback",
+        Members: [{ id: 1, name: "Jim", email: "jim@example.com", role: "Admin" }],
+      }));
+    });
+
+    const { code, stdout } = await runCli(["projects", "show", "139657"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.match(stdout, /id:\s+139657/);
+    assert.match(stdout, /Jim <jim@example\.com> \(Admin\)/);
+  });
+
+  test("invalid id exits 2", async () => {
+    const { code, stderr } = await runCli(["projects", "show", "abc"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 2);
+    assert.match(stderr, /config/);
+  });
+
+  test("404 exits 4", async () => {
+    server.setHandler((_req, res) => {
+      res.statusCode = 404;
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ message: "Not Found" }));
+    });
+    const { code, stderr } = await runCli(["projects", "show", "999"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 4);
+    assert.match(stderr, /not_found/);
+  });
+});
+
 describe("build artifact (post tsc)", () => {
   test("./bin/ub.js --version works under plain node", async () => {
     const child = spawn(process.execPath, [BIN, "--version"], {

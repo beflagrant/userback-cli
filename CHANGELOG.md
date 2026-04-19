@@ -11,6 +11,9 @@ with notes derived from this file.
 
 ### Added
 
+- `ub projects list` and `ub projects show <id>` for discovering
+  projects in a workspace, including member lists. Closes the
+  "how do I find my `USERBACK_DEFAULT_PROJECT_ID`?" gap.
 - Automatic `.env` loading from the current working directory. Real
   environment variables take precedence. No new runtime dependencies
   — parser lives in `src/env.ts`.

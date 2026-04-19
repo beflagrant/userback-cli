@@ -12,6 +12,8 @@ For the output shape of each command in `--json` mode, see
 - [`ub create`](#ub-create)
 - [`ub close`](#ub-close)
 - [`ub comment`](#ub-comment)
+- [`ub projects list`](#ub-projects-list)
+- [`ub projects show`](#ub-projects-show)
 
 ---
 
@@ -219,3 +221,78 @@ ub comment 1234 --body "Reproduced on Safari 17.4"
 The `isPublic` flag is not currently exposed; the API default applies.
 [Issue welcome](https://github.com/beflagrant/userback-cli/issues/new/choose)
 if you need it.
+
+---
+
+## `ub projects list`
+
+List the projects visible to your API token.
+
+```text
+ub projects list [--json]
+```
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--json` | off | Emit JSON instead of the padded table. |
+
+### Example
+
+```sh
+ub projects list
+# ID          NAME                                      TYPE        ARCHIVED
+# 139657      My first project                          feedback    false
+```
+
+The API returns a `{"data": [...]}` envelope that the CLI unwraps; you
+always see a plain array in `--json` mode.
+
+### Exit codes
+
+Same as the other list commands — `0` on success, `3` on bad token,
+`7` on network failure.
+
+---
+
+## `ub projects show`
+
+Show one project, including its member list.
+
+```text
+ub projects show <projectId> [--json]
+```
+
+### Arguments
+
+| Arg | Required | Description |
+|---|---|---|
+| `<projectId>` | yes | Positive integer project id (from `ub projects list`). |
+
+### Flags
+
+| Flag | Default | Description |
+|---|---|---|
+| `--json` | off | Emit JSON instead of a human-readable block. |
+
+### Example
+
+```sh
+ub projects show 139657
+# id:         139657
+# name:       My first project
+# type:       feedback
+# archived:   false
+# created:    2026-04-18T17:01:38.000Z
+# createdBy:  106367
+#
+# members:
+#   - Jim Remsik <jim@beflagrant.com> (Admin)
+```
+
+### Known limitation
+
+The `/project` list endpoint returns an empty `Members` array; the
+per-project `/project/:id` endpoint populates it. Use `projects show`
+when you need membership detail.

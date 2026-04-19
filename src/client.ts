@@ -80,6 +80,27 @@ export interface Comment {
   [key: string]: unknown;
 }
 
+export interface ProjectMember {
+  id?: number;
+  userId?: number;
+  role?: string;
+  isDisabled?: boolean;
+  email?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+export interface Project {
+  id: number;
+  name?: string;
+  isArchived?: boolean;
+  projectType?: string;
+  created?: string;
+  createdBy?: number;
+  Members?: ProjectMember[];
+  [key: string]: unknown;
+}
+
 export interface ListFeedbackOptions {
   page?: number;
   limit?: number;
@@ -161,6 +182,15 @@ export class UserbackClient {
 
   async createComment(args: { feedbackId: number; comment: string }): Promise<Comment> {
     return this.request<Comment>("POST", "/feedback/comment", { body: args });
+  }
+
+  async listProjects(): Promise<Project[]> {
+    const raw = await this.request<unknown>("GET", "/project");
+    return unwrapList<Project>(raw);
+  }
+
+  async getProject(id: number): Promise<Project> {
+    return this.request<Project>("GET", `/project/${id}`);
   }
 
   private async request<T>(

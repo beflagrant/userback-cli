@@ -136,17 +136,29 @@ USERBACK_API_KEY="ub_..." ub list --limit 1
 ## Commands
 
 ```text
-ub list    [--json] [--limit N] [--type Bug|Idea|General] [--project-id ID] [--status NAME]
-ub show    <id> [--json]
-ub create  --title "..." --body "..." [--type ...] [--priority low|neutral|high|urgent]
-           [--project-id ID] [--email E] [--json]
-ub close   <id> [--comment "..."] [--json]
-ub comment <id> --body "..." [--json]
+ub list         [--json] [--limit N] [--type Bug|Idea|General] [--project-id ID] [--status NAME]
+ub show         <id> [--json]
+ub create       --title "..." --body "..." [--type ...] [--priority low|neutral|high|urgent]
+                [--project-id ID] [--email E] [--json]
+ub close        <id> [--comment "..."] [--json]
+ub comment      <id> --body "..." [--json]
+ub projects list [--json]
+ub projects show <id> [--json]
 ```
 
 Run `ub <command> --help` for the canonical list of flags for each command.
 
 ## Examples
+
+### Discover your projects
+
+```sh
+ub projects list
+ub projects show 139657
+```
+
+Use this to find the right `USERBACK_DEFAULT_PROJECT_ID` when you're
+setting up `ub create`.
 
 ### List recent bugs, formatted as a table
 

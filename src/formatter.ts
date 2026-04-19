@@ -7,7 +7,7 @@ import {
   ValidationError,
   ServerError,
 } from "./client.js";
-import type { Feedback } from "./client.js";
+import type { Feedback, Project } from "./client.js";
 
 const DASH = "—";
 
@@ -66,6 +66,51 @@ export function feedbackListHuman(rows: Feedback[]): string {
 function orDashPad(value: unknown, width: number): string {
   const s = value === undefined || value === null || value === "" ? DASH : String(value);
   return s.padEnd(width);
+}
+
+export function projectJson(project: Project): string {
+  return JSON.stringify(project) + "\n";
+}
+
+export function projectHuman(project: Project): string {
+  const lines = [
+    `id:         ${orDash(project.id)}`,
+    `name:       ${orDash(project.name)}`,
+    `type:       ${orDash(project.projectType)}`,
+    `archived:   ${project.isArchived === undefined ? DASH : String(project.isArchived)}`,
+    `created:    ${orDash(project.created)}`,
+    `createdBy:  ${orDash(project.createdBy)}`,
+  ];
+  const members = project.Members ?? [];
+  if (members.length > 0) {
+    lines.push(``, `members:`);
+    for (const m of members) {
+      const role = orDash(m.role);
+      const name = orDash(m.name);
+      const email = orDash(m.email);
+      lines.push(`  - ${name} <${email}> (${role})`);
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
+export function projectListJson(projects: Project[]): string {
+  return JSON.stringify(projects) + "\n";
+}
+
+export function projectListHuman(projects: Project[]): string {
+  if (projects.length === 0) return "no projects found\n";
+
+  const header = `${"ID".padEnd(10)}  ${"NAME".padEnd(40)}  ${"TYPE".padEnd(10)}  ARCHIVED`;
+  const lines = [header];
+  for (const p of projects) {
+    const id = orDashPad(p.id, 10);
+    const name = orDashPad(p.name ? truncate(p.name, 40) : undefined, 40);
+    const type = orDashPad(p.projectType, 10);
+    const archived = p.isArchived === undefined ? DASH : String(p.isArchived);
+    lines.push(`${id}  ${name}  ${type}  ${archived}`);
+  }
+  return lines.join("\n") + "\n";
 }
 
 function kindOf(err: Error): string {

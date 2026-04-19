@@ -196,6 +196,35 @@ function buildProgram(): Command {
       }
     });
 
+  const projects = program
+    .command("projects")
+    .description("Inspect projects in this workspace");
+
+  projects
+    .command("list")
+    .description("List projects in the workspace")
+    .option("--json", "Emit JSON instead of a human-readable table")
+    .action(async (opts: { json?: boolean }) => {
+      const { UserbackClient } = await import("./client.js");
+      const { projectListHuman, projectListJson } = await import("./formatter.js");
+      const client = new UserbackClient();
+      const rows = await client.listProjects();
+      process.stdout.write(opts.json ? projectListJson(rows) : projectListHuman(rows));
+    });
+
+  projects
+    .command("show <projectId>")
+    .description("Show a single project with members")
+    .option("--json", "Emit JSON instead of a human-readable block")
+    .action(async (projectIdRaw: string, opts: { json?: boolean }) => {
+      const id = parsePositiveInt(projectIdRaw, "projectId");
+      const { UserbackClient } = await import("./client.js");
+      const { projectHuman, projectJson } = await import("./formatter.js");
+      const client = new UserbackClient();
+      const project = await client.getProject(id);
+      process.stdout.write(opts.json ? projectJson(project) : projectHuman(project));
+    });
+
   program
     .command("comment <feedbackId>")
     .description("Add a comment to a feedback item")

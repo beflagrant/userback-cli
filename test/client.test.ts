@@ -431,3 +431,79 @@ describe("createComment", () => {
     );
   });
 });
+
+describe("listProjects", () => {
+  let agent: MockAgent;
+  before(() => { agent = installMockAgent(); });
+  after(() => restoreDispatcher());
+  beforeEach(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  test("GET /project unwraps {data: [...]}", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/project", method: "GET" })
+      .reply(200, {
+        data: [{ id: 1, name: "P1" }, { id: 2, name: "P2" }],
+      }, { headers: { "content-type": "application/json" } });
+
+    const client = new UserbackClient();
+    const rows = await client.listProjects();
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0]!.name, "P1");
+  });
+
+  test("GET /project returns [] for empty data", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/project", method: "GET" })
+      .reply(200, { data: [] }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    const rows = await client.listProjects();
+    assert.deepEqual(rows, []);
+  });
+});
+
+describe("getProject", () => {
+  let agent: MockAgent;
+  before(() => { agent = installMockAgent(); });
+  after(() => restoreDispatcher());
+  beforeEach(() => {
+    process.env.USERBACK_API_KEY = TEST_API_KEY;
+    process.env.USERBACK_BASE_URL = TEST_BASE_URL;
+  });
+
+  test("GET /project/:id returns bare Project", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/project/139657", method: "GET" })
+      .reply(200, {
+        id: 139657,
+        name: "My first project",
+        projectType: "feedback",
+        Members: [{ id: 1, name: "Jim", email: "jim@example.com", role: "Admin" }],
+      }, { headers: { "content-type": "application/json" } });
+
+    const client = new UserbackClient();
+    const p = await client.getProject(139657);
+    assert.equal(p.id, 139657);
+    assert.equal(p.name, "My first project");
+    assert.equal(p.Members?.length, 1);
+  });
+
+  test("GET /project/:id propagates 404", async () => {
+    mockPool(agent, TEST_ORIGIN)
+      .intercept({ path: "/1.0/project/999", method: "GET" })
+      .reply(404, { message: "Not Found" }, {
+        headers: { "content-type": "application/json" },
+      });
+
+    const client = new UserbackClient();
+    await assert.rejects(
+      () => client.getProject(999),
+      { name: "NotFoundError" },
+    );
+  });
+});

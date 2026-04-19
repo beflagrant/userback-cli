@@ -149,3 +149,81 @@ test("errorJson for unknown Error falls back to kind=unexpected", () => {
   assert.equal(parsed.error.kind, "unexpected");
   assert.equal(parsed.error.message, "boom");
 });
+
+import {
+  projectJson,
+  projectHuman,
+  projectListJson,
+  projectListHuman,
+} from "../src/formatter.js";
+import type { Project } from "../src/client.js";
+
+const sampleProject: Project = {
+  id: 139657,
+  name: "My first project",
+  projectType: "feedback",
+  isArchived: false,
+  created: "2026-04-18T17:01:38.000Z",
+  createdBy: 106367,
+  Members: [
+    { id: 1, name: "Jim", email: "jim@example.com", role: "Admin" },
+  ],
+};
+
+test("projectJson returns parseable JSON with trailing newline", () => {
+  const out = projectJson(sampleProject);
+  assert.ok(out.endsWith("\n"));
+  const parsed = JSON.parse(out);
+  assert.equal(parsed.id, 139657);
+});
+
+test("projectHuman renders scalar fields and member rows", () => {
+  const out = projectHuman(sampleProject);
+  assert.match(out, /id:\s+139657/);
+  assert.match(out, /name:\s+My first project/);
+  assert.match(out, /type:\s+feedback/);
+  assert.match(out, /archived:\s+false/);
+  assert.match(out, /members:/);
+  assert.match(out, /Jim <jim@example\.com> \(Admin\)/);
+});
+
+test("projectHuman omits members block when Members is empty", () => {
+  const out = projectHuman({ id: 1, name: "P", Members: [] });
+  assert.doesNotMatch(out, /members:/);
+});
+
+test("projectHuman renders em-dash for missing fields", () => {
+  const out = projectHuman({ id: 1 });
+  assert.match(out, /name:\s+—/);
+  assert.match(out, /archived:\s+—/);
+});
+
+test("projectListJson returns parseable JSON array with newline", () => {
+  const out = projectListJson([{ id: 1 }, { id: 2 }]);
+  assert.ok(out.endsWith("\n"));
+  assert.equal(JSON.parse(out).length, 2);
+});
+
+test("projectListJson returns [] for empty input", () => {
+  assert.equal(projectListJson([]), "[]\n");
+});
+
+test("projectListHuman renders header and one row per project", () => {
+  const rows: Project[] = [
+    { id: 1, name: "first", projectType: "feedback", isArchived: false },
+    { id: 2, name: "second", projectType: "bug", isArchived: true },
+  ];
+  const out = projectListHuman(rows);
+  const lines = out.trimEnd().split("\n");
+  assert.equal(lines.length, 3);
+  assert.match(lines[0]!, /ID/);
+  assert.match(lines[0]!, /NAME/);
+  assert.match(lines[0]!, /ARCHIVED/);
+  assert.match(lines[1]!, /first/);
+  assert.match(lines[2]!, /second/);
+  assert.match(lines[2]!, /true/);
+});
+
+test("projectListHuman renders 'no projects found' when empty", () => {
+  assert.equal(projectListHuman([]), "no projects found\n");
+});
