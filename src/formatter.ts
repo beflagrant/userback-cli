@@ -83,21 +83,26 @@ export function errorHuman(err: Error): string {
   return `ub: ${kindOf(err)}: ${err.message}\n`;
 }
 
-export function errorJson(err: Error): string {
-  const kind = kindOf(err);
-  const payload: {
-    error: {
-      kind: string;
-      message: string;
-      status?: number;
-      body?: unknown;
-    };
-  } = {
-    error: { kind, message: err.message },
+export interface ErrorPayload {
+  error: {
+    kind: string;
+    message: string;
+    status?: number;
+    body?: unknown;
+  };
+}
+
+export function errorPayload(err: Error): ErrorPayload {
+  const payload: ErrorPayload = {
+    error: { kind: kindOf(err), message: err.message },
   };
   if (err instanceof HTTPError) {
     payload.error.status = err.status;
     payload.error.body = err.body;
   }
-  return JSON.stringify(payload) + "\n";
+  return payload;
+}
+
+export function errorJson(err: Error): string {
+  return JSON.stringify(errorPayload(err)) + "\n";
 }

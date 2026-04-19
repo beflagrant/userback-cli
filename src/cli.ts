@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { createRequire } from "node:module";
 import { UserbackError, HTTPError, ConfigError, NetworkError, UnauthorizedError, NotFoundError, ValidationError, ServerError } from "./client.js";
-import { errorHuman, errorJson } from "./formatter.js";
+import { errorHuman, errorJson, errorPayload } from "./formatter.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -168,7 +168,6 @@ function buildProgram(): Command {
       const workflow = buildCloseWorkflow();
 
       const { UserbackClient } = await import("./client.js");
-      const { errorJson } = await import("./formatter.js");
       const client = new UserbackClient();
 
       await client.updateFeedback(id, { Workflow: workflow });
@@ -179,7 +178,7 @@ function buildProgram(): Command {
         } catch (commentErr) {
           const err = commentErr instanceof Error ? commentErr : new Error(String(commentErr));
           if (opts.json) {
-            const body = { closed: true, comment: JSON.parse(errorJson(err)) };
+            const body = { closed: true, comment: errorPayload(err) };
             process.stdout.write(JSON.stringify(body) + "\n");
           } else {
             process.stderr.write(`ub: closed ${id} but failed to post comment\n`);
