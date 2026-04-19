@@ -67,7 +67,8 @@ export interface Feedback {
   priority?: string;
   category?: string;
   rating?: string;
-  createdAt?: string;
+  created?: string;
+  modified?: string;
   [key: string]: unknown;
 }
 
@@ -75,7 +76,7 @@ export interface Comment {
   id: number;
   feedbackId?: number;
   comment?: string;
-  createdAt?: string;
+  created?: string;
   [key: string]: unknown;
 }
 

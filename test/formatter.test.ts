@@ -26,7 +26,7 @@ const sample: Feedback = {
   priority: "high",
   category: "billing",
   rating: "3",
-  createdAt: "2026-04-10T09:00:00Z",
+  created: "2026-04-10T09:00:00Z",
 };
 
 test("feedbackJson returns parseable JSON with trailing newline", () => {
@@ -76,8 +76,8 @@ test("feedbackListJson returns [] for empty input", () => {
 
 test("feedbackListHuman has a header row and one row per feedback", () => {
   const rows: Feedback[] = [
-    { id: 1, feedbackType: "Bug", title: "first", priority: "high", createdAt: "2026-04-01" },
-    { id: 2, feedbackType: "Idea", title: "second", priority: "low", createdAt: "2026-04-02" },
+    { id: 1, feedbackType: "Bug", title: "first", priority: "high", created: "2026-04-01" },
+    { id: 2, feedbackType: "Idea", title: "second", priority: "low", created: "2026-04-02" },
   ];
   const out = feedbackListHuman(rows);
   const lines = out.trimEnd().split("\n");

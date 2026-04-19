@@ -27,7 +27,7 @@ export function feedbackHuman(row: Feedback): string {
     `title:     ${orDash(row.title)}`,
     `priority:  ${orDash(row.priority)}`,
     `category:  ${orDash(row.category)}`,
-    `created:   ${orDash(row.createdAt)}`,
+    `created:   ${orDash(row.created)}`,
     ``,
     orDash(row.description),
   ];
@@ -57,7 +57,7 @@ export function feedbackListHuman(rows: Feedback[]): string {
     const type = orDashPad(row.feedbackType, 8);
     const title = orDashPad(row.title ? truncate(row.title, 40) : undefined, 40);
     const priority = orDashPad(row.priority, 10);
-    const created = orDash(row.createdAt);
+    const created = orDash(row.created);
     lines.push(`${id}  ${type}  ${title}  ${priority}  ${created}`);
   }
   return lines.join("\n") + "\n";
