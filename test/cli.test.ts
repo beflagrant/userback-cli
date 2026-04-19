@@ -137,3 +137,87 @@ describe("ub show", () => {
     assert.match(stderr, /not_found/);
   });
 });
+
+describe("ub list", () => {
+  let server: TestServer;
+
+  before(async () => { server = await startTestServer(); });
+  after(async () => { await server.close(); });
+
+  test("default query: page=1&limit=25, no filter", async () => {
+    server.setHandler((req, res) => {
+      assert.equal(req.method, "GET");
+      assert.equal(req.url, "/1.0/feedback?page=1&limit=25");
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify([{ id: 1, title: "a" }, { id: 2, title: "b" }]));
+    });
+    const { code, stdout } = await runCli(["list"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    assert.match(stdout, /^ID\s+TYPE\s+TITLE/m);
+    assert.match(stdout, /\b1\b/);
+    assert.match(stdout, /\b2\b/);
+  });
+
+  test("--json outputs parseable array", async () => {
+    server.setHandler((_req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify([{ id: 1 }]));
+    });
+    const { code, stdout } = await runCli(["list", "--json"], {
+      USERBACK_API_KEY: "test-key",
+      USERBACK_BASE_URL: server.url,
+    });
+    assert.equal(code, 0);
+    const parsed = JSON.parse(stdout);
+    assert.equal(parsed.length, 1);
+  });
+
+  test("--limit 10 --type Bug --project-id 7 composes OData filter", async () => {
+    server.setHandler((req, res) => {
+      assert.ok(req.url?.includes("limit=10"));
+      assert.ok(req.url?.includes("filter="));
+      const url = new URL(`http://x${req.url!}`);
+      const filter = url.searchParams.get("filter") ?? "";
+      assert.match(filter, /projectId eq 7/);
+      assert.match(filter, /feedbackType eq 'Bug'/);
+      res.setHeader("content-type", "application/json");
+      res.end("[]");
+    });
+    const { code } = await runCli(
+      ["list", "--limit", "10", "--type", "Bug", "--project-id", "7"],
+      { USERBACK_API_KEY: "test-key", USERBACK_BASE_URL: server.url },
+    );
+    assert.equal(code, 0);
+  });
+
+  test("--limit above 50 is clamped to 50 (stderr warning in human mode)", async () => {
+    server.setHandler((req, res) => {
+      assert.ok(req.url?.includes("limit=50"));
+      res.setHeader("content-type", "application/json");
+      res.end("[]");
+    });
+    const { code, stderr } = await runCli(
+      ["list", "--limit", "9999"],
+      { USERBACK_API_KEY: "test-key", USERBACK_BASE_URL: server.url },
+    );
+    assert.equal(code, 0);
+    assert.match(stderr, /clamped/i);
+  });
+
+  test("--json + --limit above 50 clamps silently", async () => {
+    server.setHandler((req, res) => {
+      assert.ok(req.url?.includes("limit=50"));
+      res.setHeader("content-type", "application/json");
+      res.end("[]");
+    });
+    const { code, stderr } = await runCli(
+      ["list", "--limit", "9999", "--json"],
+      { USERBACK_API_KEY: "test-key", USERBACK_BASE_URL: server.url },
+    );
+    assert.equal(code, 0);
+    assert.equal(stderr, "");
+  });
+});

@@ -17,6 +17,18 @@ function parsePositiveInt(raw: string, name: string): number {
   return n;
 }
 
+const FEEDBACK_TYPES = new Set(["General", "Bug", "Idea"]);
+
+function validateFeedbackType(t: string): void {
+  if (!FEEDBACK_TYPES.has(t)) {
+    throw new ConfigError(`--type must be one of General|Bug|Idea, got: ${t}`);
+  }
+}
+
+function escapeODataString(s: string): string {
+  return s.replaceAll("'", "''");
+}
+
 function buildProgram(): Command {
   const program = new Command();
   program
@@ -36,6 +48,51 @@ function buildProgram(): Command {
       const client = new UserbackClient();
       const row = await client.getFeedback(id);
       process.stdout.write(opts.json ? feedbackJson(row) : feedbackHuman(row));
+    });
+
+  program
+    .command("list")
+    .description("List feedback items (one page per invocation)")
+    .option("--json", "Emit JSON instead of a human-readable table")
+    .option("--limit <n>", "Page size (max 50)", "25")
+    .option("--status <name>", "Filter by workflow stage name")
+    .option("--project-id <id>", "Filter by project id")
+    .option("--type <type>", "Filter by feedback type (General|Bug|Idea)")
+    .action(async (opts: {
+      json?: boolean;
+      limit: string;
+      status?: string;
+      projectId?: string;
+      type?: string;
+    }) => {
+      const requested = parsePositiveInt(opts.limit, "--limit");
+      let limit = requested;
+      if (limit > 50) {
+        limit = 50;
+        if (!opts.json) {
+          process.stderr.write("ub: --limit clamped to API max of 50\n");
+        }
+      }
+
+      const filters: string[] = [];
+      if (opts.projectId) {
+        const pid = parsePositiveInt(opts.projectId, "--project-id");
+        filters.push(`projectId eq ${pid}`);
+      }
+      if (opts.type) {
+        validateFeedbackType(opts.type);
+        filters.push(`feedbackType eq '${opts.type}'`);
+      }
+      if (opts.status) {
+        filters.push(`Workflow/name eq '${escapeODataString(opts.status)}'`);
+      }
+      const filter = filters.length > 0 ? filters.join(" and ") : undefined;
+
+      const { UserbackClient } = await import("./client.js");
+      const { feedbackListHuman, feedbackListJson } = await import("./formatter.js");
+      const client = new UserbackClient();
+      const rows = await client.listFeedback({ limit, filter });
+      process.stdout.write(opts.json ? feedbackListJson(rows) : feedbackListHuman(rows));
     });
 
   return program;
