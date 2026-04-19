@@ -42,7 +42,7 @@ function buildCloseWorkflow(): { id: number } | { name: string } {
   if (raw !== undefined && /^\d+$/.test(raw)) {
     return { id: Number(raw) };
   }
-  return { name: raw ?? "Closed" };
+  return { name: raw ?? "Resolved" };
 }
 
 function buildProgram(): Command {

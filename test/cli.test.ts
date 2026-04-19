@@ -351,12 +351,12 @@ describe("ub close", () => {
   before(async () => { server = await startTestServer(); });
   after(async () => { await server.close(); });
 
-  test("PATCH with Workflow.name='Closed' by default", async () => {
+  test("PATCH with Workflow.name='Resolved' by default", async () => {
     server.setHandler(async (req, res) => {
       assert.equal(req.method, "PATCH");
       assert.equal(req.url, "/1.0/feedback/42");
       const body = JSON.parse(await collectBody(req));
-      assert.deepEqual(body, { Workflow: { name: "Closed" } });
+      assert.deepEqual(body, { Workflow: { name: "Resolved" } });
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ id: 42 }));
     });

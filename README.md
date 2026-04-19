@@ -25,7 +25,7 @@ Set these environment variables:
 | `USERBACK_BASE_URL` | No | Override the API base URL. Defaults to `https://rest.userback.io/1.0`. |
 | `USERBACK_DEFAULT_PROJECT_ID` | Required for `ub create` unless `--project-id` is passed | Numeric project id. |
 | `USERBACK_DEFAULT_EMAIL` | Required for `ub create` unless `--email` is passed | Submitter email. |
-| `USERBACK_CLOSED_STATUS` | No | Workflow stage name for `ub close`. Defaults to `"Closed"`. See below. |
+| `USERBACK_CLOSED_STATUS` | No | Workflow stage name for `ub close`. Defaults to `"Resolved"` (the terminal stage in the default Userback workflow). See below. |
 | `UB_DEBUG` | No | Set to `1` to include stack traces on unexpected errors. |
 
 ## Commands
@@ -80,7 +80,7 @@ ub comment 123 --body "Reproduced on Safari"
 
 The Userback API has no plain "status" field. Closing a feedback item
 means PATCHing its `Workflow` to a named stage. By default, `ub close`
-sends `{ "Workflow": { "name": "Closed" } }`. Override the name with
+sends `{ "Workflow": { "name": "Resolved" } }`. Override the name with
 `USERBACK_CLOSED_STATUS`, or set it to a numeric id to target a stage
 by id instead of name:
 
