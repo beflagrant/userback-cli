@@ -135,18 +135,13 @@ USERBACK_API_KEY="ub_..." ub list --limit 1
 
 ## Commands
 
-```text
-ub list         [--json] [--limit N] [--type Bug|Idea|General] [--project-id ID] [--status NAME]
-ub show         <id> [--json]
-ub create       --title "..." --body "..." [--type ...] [--priority low|neutral|high|urgent]
-                [--project-id ID] [--email E] [--json]
-ub close        <id> [--comment "..."] [--json]
-ub comment      <id> --body "..." [--json]
-ub projects list [--json]
-ub projects show <id> [--json]
-```
+- `ub list`, `ub show <id>` — browse feedback
+- `ub create` — file a new item
+- `ub close <id>`, `ub comment <id>` — update items
+- `ub projects list`, `ub projects show <id>` — discover projects
 
-Run `ub <command> --help` for the canonical list of flags for each command.
+Full flag reference with exit codes: [docs/commands.md](docs/commands.md).
+Run `ub <command> --help` for the canonical flags for each.
 
 ## Examples
 
