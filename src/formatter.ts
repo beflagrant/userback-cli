@@ -151,3 +151,4 @@ export function errorPayload(err: Error): ErrorPayload {
 export function errorJson(err: Error): string {
   return JSON.stringify(errorPayload(err)) + "\n";
 }
+//
