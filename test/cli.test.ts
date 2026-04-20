@@ -20,13 +20,19 @@ interface RunResult {
 }
 
 async function runCli(args: string[], env: Record<string, string> = {}): Promise<RunResult> {
+  const parentEnv = { ...process.env };
+  for (const k of Object.keys(parentEnv)) {
+    if (k.startsWith("USERBACK_")) {
+      delete parentEnv[k];
+    }
+  }
   const child = spawn(
     process.execPath,
     ["--import", "tsx", "src/cli-entry.ts", ...args],
     {
       cwd: REPO_ROOT,
       env: {
-        ...process.env,
+        ...parentEnv,
         UB_SKIP_DOTENV: "1",
         ...env,
         PATH: process.env.PATH ?? "",
@@ -67,7 +73,9 @@ async function startTestServer(): Promise<TestServer> {
   const server: Server = createServer((req, res) => currentHandler(req, res));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (!address || typeof address === "string") throw new Error("no address");
+  if (!address || typeof address === "string") {
+    throw new Error("no address");
+  }
   const url = `http://127.0.0.1:${address.port}/1.0`;
   return {
     url,
