@@ -255,12 +255,13 @@ export class UserbackClient {
   }
 
   private summarizeError(status: number, body: unknown): string {
+    const ERROR_MESSAGE_PREVIEW_CHARS = 200;
     if (typeof body === "string" && body.length > 0) {
-      return `HTTP ${status}: ${body.slice(0, 200)}`;
+      return `HTTP ${status}: ${body.slice(0, ERROR_MESSAGE_PREVIEW_CHARS)}`;
     }
     if (body && typeof body === "object") {
       try {
-        return `HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`;
+        return `HTTP ${status}: ${JSON.stringify(body).slice(0, ERROR_MESSAGE_PREVIEW_CHARS)}`;
       } catch {
         return `HTTP ${status}`;
       }
