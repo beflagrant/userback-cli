@@ -13,6 +13,17 @@ const PRIORITIES = new Set(["low", "neutral", "high", "urgent"]);
 const DEFAULT_CLOSED_STATUS = "Resolved";
 const MAX_LIST_PAGE_SIZE = 50;
 
+const EXIT = {
+  SUCCESS: 0,
+  UNEXPECTED: 1,
+  CONFIG: 2,
+  UNAUTHORIZED: 3,
+  NOT_FOUND: 4,
+  VALIDATION: 5,
+  HTTP: 6,
+  NETWORK: 7,
+} as const;
+
 function parsePositiveInt(raw: string, name: string): number {
   if (!POSITIVE_INT_RE.test(raw)) {
     throw new ConfigError(`${name} must be a positive integer, got: ${raw}`);
@@ -163,7 +174,7 @@ async function closeAction(feedbackIdRaw: string, opts: CloseOpts): Promise<void
         process.stderr.write(`ub: closed ${id} but failed to post comment\n`);
         process.stderr.write(`ub: ${err.message}\n`);
       }
-      process.exit(6);
+      process.exit(EXIT.HTTP);
     }
   }
 
@@ -276,24 +287,24 @@ function buildProgram(): Command {
 
 function exitCodeFor(err: Error): number {
   if (err instanceof ConfigError) {
-    return 2;
+    return EXIT.CONFIG;
   }
   if (err instanceof UnauthorizedError) {
-    return 3;
+    return EXIT.UNAUTHORIZED;
   }
   if (err instanceof NotFoundError) {
-    return 4;
+    return EXIT.NOT_FOUND;
   }
   if (err instanceof ValidationError) {
-    return 5;
+    return EXIT.VALIDATION;
   }
   if (err instanceof HTTPError) {
-    return 6;
+    return EXIT.HTTP;
   }
   if (err instanceof NetworkError) {
-    return 7;
+    return EXIT.NETWORK;
   }
-  return 1;
+  return EXIT.UNEXPECTED;
 }
 
 function isJsonModeRequested(argv: string[]): boolean {
@@ -325,7 +336,7 @@ export async function run(argv: string[]): Promise<never> {
   const program = buildProgram();
   try {
     await program.parseAsync(argv);
-    process.exit(0);
+    process.exit(EXIT.SUCCESS);
   } catch (caught) {
     const err = caught instanceof Error ? caught : new Error(String(caught));
     reportError(err, argv);
