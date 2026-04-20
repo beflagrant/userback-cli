@@ -5,13 +5,19 @@ export function parseDotenv(contents: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const rawLine of contents.split(/\r?\n/)) {
     const line = rawLine.trim();
-    if (line === "" || line.startsWith("#")) continue;
+    if (line === "" || line.startsWith("#")) {
+      continue;
+    }
 
     const eq = line.indexOf("=");
-    if (eq <= 0) continue;
+    if (eq <= 0) {
+      continue;
+    }
 
     const key = line.slice(0, eq).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      continue;
+    }
 
     let value = line.slice(eq + 1).trim();
     if (
@@ -26,7 +32,9 @@ export function parseDotenv(contents: string): Record<string, string> {
 }
 
 export function loadDotenv(cwd: string = process.cwd()): void {
-  if (process.env.UB_SKIP_DOTENV === "1") return;
+  if (process.env.UB_SKIP_DOTENV === "1") {
+    return;
+  }
   let contents: string;
   try {
     contents = readFileSync(resolve(cwd, ".env"), "utf8");

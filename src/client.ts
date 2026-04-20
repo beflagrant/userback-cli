@@ -232,10 +232,18 @@ export class UserbackClient {
   }
 
   private errorForStatus(status: number, body: unknown, message: string): HTTPError {
-    if (status === 401) return new UnauthorizedError(status, body, message);
-    if (status === 404) return new NotFoundError(status, body, message);
-    if (status === 422) return new ValidationError(status, body, message);
-    if (status >= 500) return new ServerError(status, body, message);
+    if (status === 401) {
+      return new UnauthorizedError(status, body, message);
+    }
+    if (status === 404) {
+      return new NotFoundError(status, body, message);
+    }
+    if (status === 422) {
+      return new ValidationError(status, body, message);
+    }
+    if (status >= 500) {
+      return new ServerError(status, body, message);
+    }
     return new HTTPError(status, body, message);
   }
 }

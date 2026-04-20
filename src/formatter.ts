@@ -12,7 +12,9 @@ import type { Feedback, Project } from "./client.js";
 const DASH = "—";
 
 function orDash(value: unknown): string {
-  if (value === undefined || value === null || value === "") return DASH;
+  if (value === undefined || value === null || value === "") {
+    return DASH;
+  }
   return String(value);
 }
 
@@ -47,7 +49,9 @@ function truncate(s: string, max: number): string {
 }
 
 export function feedbackListHuman(rows: Feedback[]): string {
-  if (rows.length === 0) return "no feedback found\n";
+  if (rows.length === 0) {
+    return "no feedback found\n";
+  }
 
   const header = `${"ID".padEnd(8)}  ${"TYPE".padEnd(8)}  ${"TITLE".padEnd(40)}  ${"PRIORITY".padEnd(10)}  CREATED`;
   const lines = [header];
@@ -64,8 +68,7 @@ export function feedbackListHuman(rows: Feedback[]): string {
 }
 
 function orDashPad(value: unknown, width: number): string {
-  const s = value === undefined || value === null || value === "" ? DASH : String(value);
-  return s.padEnd(width);
+  return orDash(value).padEnd(width);
 }
 
 export function projectJson(project: Project): string {
@@ -99,7 +102,9 @@ export function projectListJson(projects: Project[]): string {
 }
 
 export function projectListHuman(projects: Project[]): string {
-  if (projects.length === 0) return "no projects found\n";
+  if (projects.length === 0) {
+    return "no projects found\n";
+  }
 
   const header = `${"ID".padEnd(10)}  ${"NAME".padEnd(40)}  ${"TYPE".padEnd(10)}  ARCHIVED`;
   const lines = [header];
@@ -114,13 +119,27 @@ export function projectListHuman(projects: Project[]): string {
 }
 
 function kindOf(err: Error): string {
-  if (err instanceof ConfigError) return "config";
-  if (err instanceof UnauthorizedError) return "unauthorized";
-  if (err instanceof NotFoundError) return "not_found";
-  if (err instanceof ValidationError) return "validation";
-  if (err instanceof ServerError) return "server";
-  if (err instanceof HTTPError) return "http";
-  if (err instanceof NetworkError) return "network";
+  if (err instanceof ConfigError) {
+    return "config";
+  }
+  if (err instanceof UnauthorizedError) {
+    return "unauthorized";
+  }
+  if (err instanceof NotFoundError) {
+    return "not_found";
+  }
+  if (err instanceof ValidationError) {
+    return "validation";
+  }
+  if (err instanceof ServerError) {
+    return "server";
+  }
+  if (err instanceof HTTPError) {
+    return "http";
+  }
+  if (err instanceof NetworkError) {
+    return "network";
+  }
   return "unexpected";
 }
 
