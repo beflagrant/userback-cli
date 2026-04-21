@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+const LINE_SEPARATOR_RE = /\r?\n/;
+const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 export function parseDotenv(contents: string): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const rawLine of contents.split(/\r?\n/)) {
+  for (const rawLine of contents.split(LINE_SEPARATOR_RE)) {
     const line = rawLine.trim();
     if (line === "" || line.startsWith("#")) {
       continue;
@@ -15,15 +18,14 @@ export function parseDotenv(contents: string): Record<string, string> {
     }
 
     const key = line.slice(0, eq).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+    if (!ENV_KEY_RE.test(key)) {
       continue;
     }
 
     let value = line.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
-      (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
-    ) {
+    const doubleQuoted = value.startsWith('"') && value.endsWith('"') && value.length >= 2;
+    const singleQuoted = value.startsWith("'") && value.endsWith("'") && value.length >= 2;
+    if (doubleQuoted || singleQuoted) {
       value = value.slice(1, -1);
     }
     out[key] = value;
@@ -35,9 +37,10 @@ export function loadDotenv(cwd: string = process.cwd()): void {
   if (process.env.UB_SKIP_DOTENV === "1") {
     return;
   }
+  const dotenvPath = resolve(cwd, ".env");
   let contents: string;
   try {
-    contents = readFileSync(resolve(cwd, ".env"), "utf8");
+    contents = readFileSync(dotenvPath, "utf8");
   } catch {
     return;
   }

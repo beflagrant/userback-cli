@@ -84,15 +84,18 @@ export interface UpdateFeedbackAttrs {
   title?: string;
   description?: string;
   priority?: "low" | "neutral" | "high" | "urgent";
-  Workflow?: { id: number } | { name: string };
+  Workflow?: { id: number } | { name: string }; // capital W matches API wire format
 }
 
 const DEFAULT_BASE_URL = "https://rest.userback.io/1.0";
+const DEFAULT_PAGE_SIZE = 25;
+const ERROR_MESSAGE_PREVIEW_CHARS = 200;
 
 function unwrapList<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
-  if (raw && typeof raw === "object" && Array.isArray((raw as { data?: unknown }).data)) {
-    return (raw as { data: T[] }).data;
+  const inner = (raw as { data?: unknown } | null | undefined)?.data;
+  if (Array.isArray(inner)) {
+    return inner as T[];
   }
   throw new UserbackError(
     `Expected a list response (array or {data: []}), got: ${typeof raw}`,
@@ -126,7 +129,7 @@ export class UserbackClient {
   async listFeedback(options: ListFeedbackOptions): Promise<Feedback[]> {
     const query: Record<string, string | number | undefined> = {
       page: options.page ?? 1,
-      limit: options.limit ?? 25,
+      limit: options.limit ?? DEFAULT_PAGE_SIZE,
       sort: options.sort,
       filter: options.filter,
     };
@@ -217,7 +220,6 @@ export class UserbackClient {
   }
 
   private summarizeError(status: number, body: unknown): string {
-    const ERROR_MESSAGE_PREVIEW_CHARS = 200;
     if (typeof body === "string" && body.length > 0) {
       return `HTTP ${status}: ${body.slice(0, ERROR_MESSAGE_PREVIEW_CHARS)}`;
     }
