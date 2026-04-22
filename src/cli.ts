@@ -3,25 +3,13 @@ import { createRequire } from "node:module";
 import { UserbackError, HTTPError, ConfigError, NetworkError, UnauthorizedError, NotFoundError, ValidationError, ServerError } from "./client.js";
 import { errorHuman, errorJson } from "./formatter.js";
 import { loadDotenv } from "./env.js";
-import { EXIT, parsePositiveInt } from "./cli/validate.js";
-import type { JsonOpt, CommentOpts } from "./cli/types.js";
+import { EXIT } from "./cli/validate.js";
 import { registerFeedback } from "./cli/commands/feedback.js";
 import { registerProjects } from "./cli/commands/projects.js";
+import { registerComments } from "./cli/commands/comments.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
-
-async function commentAction(feedbackIdRaw: string, opts: CommentOpts): Promise<void> {
-  const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
-  const { UserbackClient } = await import("./client.js");
-  const client = new UserbackClient();
-  const created = await client.createComment({ feedbackId: id, comment: opts.body });
-  if (opts.json) {
-    process.stdout.write(JSON.stringify(created) + "\n");
-  } else {
-    process.stdout.write(`${created.id ?? "—"}\n`);
-  }
-}
 
 function buildProgram(): Command {
   const program = new Command();
@@ -35,12 +23,7 @@ function buildProgram(): Command {
 
   registerProjects(program);
 
-  program
-    .command("comment <feedbackId>")
-    .description("Add a comment to a feedback item")
-    .requiredOption("--body <text>", "Comment body")
-    .option("--json", "Emit JSON instead of the new comment id")
-    .action(commentAction);
+  registerComments(program);
 
   return program;
 }
