@@ -3,61 +3,18 @@ import { createRequire } from "node:module";
 import { UserbackError, HTTPError, ConfigError, NetworkError, UnauthorizedError, NotFoundError, ValidationError, ServerError } from "./client.js";
 import { errorHuman, errorJson, errorPayload } from "./formatter.js";
 import { loadDotenv } from "./env.js";
+import {
+  MAX_LIST_PAGE_SIZE,
+  EXIT,
+  parsePositiveInt,
+  validateFeedbackType,
+  validatePriority,
+  doubleSingleQuotes,
+  buildCloseWorkflow,
+} from "./cli/validate.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
-
-const POSITIVE_INT_RE = /^\d+$/;
-const FEEDBACK_TYPES = new Set(["General", "Bug", "Idea"]);
-const PRIORITIES = new Set(["low", "neutral", "high", "urgent"]);
-const DEFAULT_CLOSED_STATUS = "Resolved";
-const MAX_LIST_PAGE_SIZE = 50;
-
-const EXIT = {
-  SUCCESS: 0,
-  UNEXPECTED: 1,
-  CONFIG: 2,
-  UNAUTHORIZED: 3,
-  NOT_FOUND: 4,
-  VALIDATION: 5,
-  HTTP: 6,
-  NETWORK: 7,
-} as const;
-
-function parsePositiveInt(raw: string, name: string): number {
-  if (!POSITIVE_INT_RE.test(raw)) {
-    throw new ConfigError(`${name} must be a positive integer, got: ${raw}`);
-  }
-  const n = Number(raw);
-  if (!Number.isSafeInteger(n) || n <= 0) {
-    throw new ConfigError(`${name} must be a positive integer, got: ${raw}`);
-  }
-  return n;
-}
-
-function validateFeedbackType(t: string): void {
-  if (!FEEDBACK_TYPES.has(t)) {
-    throw new ConfigError(`--type must be one of General|Bug|Idea, got: ${t}`);
-  }
-}
-
-function validatePriority(p: string): void {
-  if (!PRIORITIES.has(p)) {
-    throw new ConfigError(`--priority must be one of low|neutral|high|urgent, got: ${p}`);
-  }
-}
-
-function doubleSingleQuotes(s: string): string {
-  return s.replaceAll("'", "''");
-}
-
-function buildCloseWorkflow(): { id: number } | { name: string } {
-  const raw = process.env.USERBACK_CLOSED_STATUS;
-  if (raw !== undefined && POSITIVE_INT_RE.test(raw)) {
-    return { id: Number(raw) };
-  }
-  return { name: raw ?? DEFAULT_CLOSED_STATUS };
-}
 
 type JsonOpt = { json?: boolean };
 
