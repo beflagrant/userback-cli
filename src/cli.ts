@@ -12,31 +12,16 @@ import {
   doubleSingleQuotes,
   buildCloseWorkflow,
 } from "./cli/validate.js";
+import type {
+  JsonOpt,
+  ListOpts,
+  CreateOpts,
+  CloseOpts,
+  CommentOpts,
+} from "./cli/types.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
-
-type JsonOpt = { json?: boolean };
-
-type ListOpts = JsonOpt & {
-  limit: string;
-  status?: string;
-  projectId?: string;
-  type?: string;
-};
-
-type CreateOpts = JsonOpt & {
-  title: string;
-  body: string;
-  type: string;
-  projectId?: string;
-  priority?: string;
-  email?: string;
-};
-
-type CloseOpts = JsonOpt & { comment?: string };
-
-type CommentOpts = JsonOpt & { body: string };
 
 async function showAction(feedbackIdRaw: string, opts: JsonOpt): Promise<void> {
   const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
