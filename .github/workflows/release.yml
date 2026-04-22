@@ -23,9 +23,9 @@ jobs:
 
       - run: npm run typecheck
 
-      - run: npm test
-
       - run: npm run build
+
+      - run: npm test
 
       - name: Verify tag matches package.json version
         run: |
