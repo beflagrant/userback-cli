@@ -116,9 +116,10 @@ Out of scope without an ADR:
 2. Update `CHANGELOG.md` with the new section.
 3. `git commit -m "Release vX.Y.Z"`
 4. `git tag vX.Y.Z && git push --tags`
-5. The `release.yml` workflow publishes to npm on tag push and
-   creates the GitHub release. (Until that workflow lands, run
-   `npm publish` manually.)
+5. The `release.yml` workflow publishes to npm on tag push.
+   Requires `NPM_TOKEN` in the repo's GitHub Actions secrets; the
+   workflow also verifies the tag matches `package.json` before
+   publishing with provenance.
 
 ## Code of conduct
 
