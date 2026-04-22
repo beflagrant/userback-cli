@@ -6,28 +6,10 @@ import { loadDotenv } from "./env.js";
 import { EXIT, parsePositiveInt } from "./cli/validate.js";
 import type { JsonOpt, CommentOpts } from "./cli/types.js";
 import { registerFeedback } from "./cli/commands/feedback.js";
+import { registerProjects } from "./cli/commands/projects.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
-
-async function projectsListAction(opts: JsonOpt): Promise<void> {
-  const { UserbackClient } = await import("./client.js");
-  const { projectListHuman, projectListJson } = await import("./formatter.js");
-  const client = new UserbackClient();
-  const rows = await client.listProjects();
-  const output = opts.json ? projectListJson(rows) : projectListHuman(rows);
-  process.stdout.write(output);
-}
-
-async function projectsShowAction(projectIdRaw: string, opts: JsonOpt): Promise<void> {
-  const id = parsePositiveInt(projectIdRaw, "projectId");
-  const { UserbackClient } = await import("./client.js");
-  const { projectHuman, projectJson } = await import("./formatter.js");
-  const client = new UserbackClient();
-  const project = await client.getProject(id);
-  const output = opts.json ? projectJson(project) : projectHuman(project);
-  process.stdout.write(output);
-}
 
 async function commentAction(feedbackIdRaw: string, opts: CommentOpts): Promise<void> {
   const id = parsePositiveInt(feedbackIdRaw, "feedbackId");
@@ -51,21 +33,7 @@ function buildProgram(): Command {
 
   registerFeedback(program);
 
-  const projects = program
-    .command("projects")
-    .description("Inspect projects in this workspace");
-
-  projects
-    .command("list")
-    .description("List projects in the workspace")
-    .option("--json", "Emit JSON instead of a human-readable table")
-    .action(projectsListAction);
-
-  projects
-    .command("show <projectId>")
-    .description("Show a single project with members")
-    .option("--json", "Emit JSON instead of a human-readable block")
-    .action(projectsShowAction);
+  registerProjects(program);
 
   program
     .command("comment <feedbackId>")
