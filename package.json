@@ -21,7 +21,7 @@
     "test": "node --import tsx --test 'test/**/*.test.ts'",
     "test:watch": "node --import tsx --test --watch 'test/**/*.test.ts'",
     "prepublishOnly": "npm run typecheck && npm test && npm run build",
-    "preversion": "npm run typecheck && npm test",
+    "preversion": "npm run typecheck && npm run build && npm test",
     "postversion": "git push --follow-tags",
     "release": "npm version"
   },
