@@ -20,7 +20,10 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test 'test/**/*.test.ts'",
     "test:watch": "node --import tsx --test --watch 'test/**/*.test.ts'",
-    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test && npm run build",
+    "preversion": "npm run typecheck && npm test",
+    "postversion": "git push --follow-tags",
+    "release": "npm version"
   },
   "dependencies": {
     "commander": "^12.1.0"
