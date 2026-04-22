@@ -1,6 +1,15 @@
 import { Command } from "commander";
 import { createRequire } from "node:module";
-import { UserbackError, HTTPError, ConfigError, NetworkError, UnauthorizedError, NotFoundError, ValidationError, ServerError } from "./client.js";
+import {
+  UserbackError,
+  HTTPError,
+  ConfigError,
+  NetworkError,
+  UnauthorizedError,
+  NotFoundError,
+  ValidationError,
+  ServerError,
+} from "./errors.js";
 import { errorHuman, errorJson } from "./formatter.js";
 import { loadDotenv } from "./env.js";
 import { EXIT } from "./cli/validate.js";
