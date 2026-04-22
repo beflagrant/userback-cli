@@ -5,3 +5,9 @@ dist/
 .env
 .env.local
 .env.*.local
+
+.claude/
+
+docs/superpowers/
+!docs/superpowers/plans/
+!docs/superpowers/plans/2026-04-21-cli-per-command-split.md

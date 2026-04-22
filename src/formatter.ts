@@ -12,8 +12,32 @@ import type { Feedback, Project } from "./client.js";
 const DASH = "—";
 
 function orDash(value: unknown): string {
-  if (value === undefined || value === null || value === "") return DASH;
+  if (value === undefined || value === null || value === "") {
+    return DASH;
+  }
   return String(value);
+}
+
+interface Column<T> {
+  label: string;
+  width: number;
+  get: (row: T) => unknown;
+  truncate?: boolean;
+}
+
+function renderTable<T>(rows: T[], cols: Column<T>[], tail: { label: string; get: (row: T) => unknown }): string {
+  const header = [...cols.map((c) => c.label.padEnd(c.width)), tail.label].join("  ");
+  const lines = [header];
+  for (const row of rows) {
+    const cells = cols.map((c) => {
+      const raw = c.get(row);
+      const shown = c.truncate && typeof raw === "string" ? truncate(raw, c.width) : raw;
+      return orDash(shown).padEnd(c.width);
+    });
+    cells.push(orDash(tail.get(row)));
+    lines.push(cells.join("  "));
+  }
+  return lines.join("\n") + "\n";
 }
 
 export function feedbackJson(row: Feedback): string {
@@ -46,26 +70,18 @@ function truncate(s: string, max: number): string {
   return s.length <= max ? s : s.slice(0, max - 1) + "…";
 }
 
+const FEEDBACK_COLUMNS: Column<Feedback>[] = [
+  { label: "ID", width: 8, get: (r) => r.id },
+  { label: "TYPE", width: 8, get: (r) => r.feedbackType },
+  { label: "TITLE", width: 40, get: (r) => r.title, truncate: true },
+  { label: "PRIORITY", width: 10, get: (r) => r.priority },
+];
+
 export function feedbackListHuman(rows: Feedback[]): string {
-  if (rows.length === 0) return "no feedback found\n";
-
-  const header = `${"ID".padEnd(8)}  ${"TYPE".padEnd(8)}  ${"TITLE".padEnd(40)}  ${"PRIORITY".padEnd(10)}  CREATED`;
-  const lines = [header];
-
-  for (const row of rows) {
-    const id = orDashPad(row.id, 8);
-    const type = orDashPad(row.feedbackType, 8);
-    const title = orDashPad(row.title ? truncate(row.title, 40) : undefined, 40);
-    const priority = orDashPad(row.priority, 10);
-    const created = orDash(row.created);
-    lines.push(`${id}  ${type}  ${title}  ${priority}  ${created}`);
+  if (rows.length === 0) {
+    return "no feedback found\n";
   }
-  return lines.join("\n") + "\n";
-}
-
-function orDashPad(value: unknown, width: number): string {
-  const s = value === undefined || value === null || value === "" ? DASH : String(value);
-  return s.padEnd(width);
+  return renderTable(rows, FEEDBACK_COLUMNS, { label: "CREATED", get: (r) => r.created });
 }
 
 export function projectJson(project: Project): string {
@@ -98,29 +114,44 @@ export function projectListJson(projects: Project[]): string {
   return JSON.stringify(projects) + "\n";
 }
 
-export function projectListHuman(projects: Project[]): string {
-  if (projects.length === 0) return "no projects found\n";
+const PROJECT_COLUMNS: Column<Project>[] = [
+  { label: "ID", width: 10, get: (p) => p.id },
+  { label: "NAME", width: 40, get: (p) => p.name, truncate: true },
+  { label: "TYPE", width: 10, get: (p) => p.projectType },
+];
 
-  const header = `${"ID".padEnd(10)}  ${"NAME".padEnd(40)}  ${"TYPE".padEnd(10)}  ARCHIVED`;
-  const lines = [header];
-  for (const p of projects) {
-    const id = orDashPad(p.id, 10);
-    const name = orDashPad(p.name ? truncate(p.name, 40) : undefined, 40);
-    const type = orDashPad(p.projectType, 10);
-    const archived = p.isArchived === undefined ? DASH : String(p.isArchived);
-    lines.push(`${id}  ${name}  ${type}  ${archived}`);
+export function projectListHuman(projects: Project[]): string {
+  if (projects.length === 0) {
+    return "no projects found\n";
   }
-  return lines.join("\n") + "\n";
+  return renderTable(projects, PROJECT_COLUMNS, {
+    label: "ARCHIVED",
+    get: (p) => (p.isArchived === undefined ? undefined : String(p.isArchived)),
+  });
 }
 
 function kindOf(err: Error): string {
-  if (err instanceof ConfigError) return "config";
-  if (err instanceof UnauthorizedError) return "unauthorized";
-  if (err instanceof NotFoundError) return "not_found";
-  if (err instanceof ValidationError) return "validation";
-  if (err instanceof ServerError) return "server";
-  if (err instanceof HTTPError) return "http";
-  if (err instanceof NetworkError) return "network";
+  if (err instanceof ConfigError) {
+    return "config";
+  }
+  if (err instanceof UnauthorizedError) {
+    return "unauthorized";
+  }
+  if (err instanceof NotFoundError) {
+    return "not_found";
+  }
+  if (err instanceof ValidationError) {
+    return "validation";
+  }
+  if (err instanceof ServerError) {
+    return "server";
+  }
+  if (err instanceof HTTPError) {
+    return "http";
+  }
+  if (err instanceof NetworkError) {
+    return "network";
+  }
   return "unexpected";
 }
 
