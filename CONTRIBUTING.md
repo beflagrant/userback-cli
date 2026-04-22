@@ -112,13 +112,15 @@ Out of scope without an ADR:
 
 ## Releasing (maintainers)
 
-1. Bump `package.json` version.
-2. Update `CHANGELOG.md` with the new section.
-3. `git commit -m "Release vX.Y.Z"`
-4. `git tag vX.Y.Z && git push --tags`
-5. The `release.yml` workflow publishes to npm on tag push and
-   creates the GitHub release. (Until that workflow lands, run
-   `npm publish` manually.)
+1. Update `CHANGELOG.md` with the new section and commit it.
+2. `npm run release -- <patch|minor|major>` (or an explicit version
+   like `0.2.0`). This runs typecheck + tests, bumps
+   `package.json`, creates the `vX.Y.Z` commit and tag, and pushes
+   both with `git push --follow-tags`.
+3. The `release.yml` workflow publishes to npm on tag push.
+   Requires `NPM_TOKEN` in the repo's GitHub Actions secrets; the
+   workflow also verifies the tag matches `package.json` before
+   publishing with provenance.
 
 ## Code of conduct
 
