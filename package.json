@@ -1,6 +1,6 @@
 {
   "name": "userback-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Command-line tool for the Userback REST API. Install as userback-cli, invoke as ub.",
   "type": "module",
   "bin": {
@@ -34,7 +34,11 @@
     "typescript": "^5.6.0",
     "undici": "^6.20.0"
   },
-  "keywords": ["userback", "cli", "feedback"],
+  "keywords": [
+    "userback",
+    "cli",
+    "feedback"
+  ],
   "license": "MIT",
   "author": "Jim Remsik <jim@beflagrant.com>",
   "repository": {
